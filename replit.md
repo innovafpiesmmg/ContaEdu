@@ -62,6 +62,8 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `GET /api/submissions/exercise/:exerciseId` - Submissions for an exercise
 - `POST /api/submissions/:exerciseId/submit` - Student submits exercise
 - `POST /api/submissions/:id/review` - Teacher reviews with feedback/grade
+- `GET/POST/DELETE /api/exercises/:id/solution` - Teacher manages exercise solutions (MD-based)
+- `GET /api/exercises/:id/student-solution` - Student views solution (only if reviewed)
 - `GET /api/audit/students/:id/journal|ledger|trial-balance` - Teacher audit
 
 ## Password Management

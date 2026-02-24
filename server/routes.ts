@@ -552,6 +552,25 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // Student solution access (only for reviewed exercises)
+  app.get("/api/exercises/:id/student-solution", requireRole("student"), async (req: any, res) => {
+    try {
+      const exerciseId = req.params.id;
+      const submission = await storage.getExerciseSubmission(exerciseId, req.session.userId);
+      if (!submission || submission.status !== "reviewed") {
+        return res.status(403).json({ message: "Solo puedes ver la solución cuando tu ejercicio haya sido corregido" });
+      }
+      const exercisesList = await storage.getExercises();
+      const exercise = exercisesList.find(e => e.id === exerciseId);
+      if (!exercise || !exercise.solution) {
+        return res.json({ solution: null });
+      }
+      res.json({ solution: JSON.parse(exercise.solution) });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Journal entries - now exercise-scoped
   app.get("/api/journal-entries", requireAuth, async (req: any, res) => {
     const exerciseId = req.query.exerciseId as string | undefined;

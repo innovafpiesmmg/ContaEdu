@@ -77,7 +77,8 @@ export async function runAutoMigrations() {
       description text NOT NULL,
       exercise_type exercise_type NOT NULL DEFAULT 'practice',
       course_id varchar NOT NULL,
-      teacher_id varchar NOT NULL
+      teacher_id varchar NOT NULL,
+      solution text
     )`);
 
     await client.query(`CREATE TABLE IF NOT EXISTS journal_entries (

@@ -122,19 +122,21 @@ function parseSolutionMD(md: string): SolutionEntry[] {
     const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
 
     const lines: SolutionLine[] = [];
-    const tableRows = block.match(/\|[^|\n]+\|[^|\n]+\|[^|\n]+\|/g);
+    const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
     if (tableRows) {
       for (const row of tableRows) {
         if (row.includes("Cuenta") || row.includes("---")) continue;
-        const cells = row.split("|").map(c => c.trim()).filter(Boolean);
-        if (cells.length < 3) continue;
+        const cells = row.split("|").map(c => c.trim());
+        const nonEmpty = cells.filter(Boolean);
+        if (nonEmpty.length < 1) continue;
 
-        const accountFull = cells[0].trim();
+        const startIdx = cells[0] === "" ? 1 : 0;
+        const accountFull = (cells[startIdx] || "").trim();
         const codeMatch = accountFull.match(/^(\d+)\s+(.+)$/);
         if (!codeMatch) continue;
 
-        const rawDebit = cells[1].trim().replace(/\./g, "").replace(",", ".");
-        const rawCredit = cells[2].trim().replace(/\./g, "").replace(",", ".");
+        const rawDebit = (cells[startIdx + 1] || "").trim().replace(/\./g, "").replace(",", ".");
+        const rawCredit = (cells[startIdx + 2] || "").trim().replace(/\./g, "").replace(",", ".");
         const debit = parseFloat(rawDebit) || 0;
         const credit = parseFloat(rawCredit) || 0;
 
@@ -327,6 +329,39 @@ export default function ExercisesPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleSolutionFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setSolutionText(ev.target?.result as string);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const downloadSolutionTemplate = () => {
+    const content = generateSolutionTemplate();
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "plantilla_solución.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveSolution = () => {
+    const parsed = parseSolutionMD(solutionText);
+    if (parsed.length === 0) {
+      toast({ title: "Error", description: "No se encontraron asientos válidos. Revisa el formato de la plantilla.", variant: "destructive" });
+      return;
+    }
+    if (!solutionExerciseId) return;
+    saveSolutionMutation.mutate({ exerciseId: solutionExerciseId, entries: parsed });
+  };
+
+  const solutionPreview = solutionText ? parseSolutionMD(solutionText) : [];
   const previewParsed = importText ? parseExercisesMD(importText) : [];
 
   return (
@@ -446,6 +481,27 @@ export default function ExercisesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {ex.solution ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
+                          data-testid={`button-view-solution-${ex.id}`}
+                          title="Ver solución"
+                        >
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => { setSolutionExerciseId(ex.id); setSolutionText(""); }}
+                          data-testid={`button-upload-solution-${ex.id}`}
+                          title="Subir solución"
+                        >
+                          <FileUp className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"
@@ -650,6 +706,154 @@ export default function ExercisesPage() {
             >
               {reviewMutation.isPending ? "Enviando..." : "Enviar retroalimentacion"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!solutionExerciseId} onOpenChange={(open) => { if (!open) { setSolutionExerciseId(null); setSolutionText(""); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Subir solución del ejercicio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Define los asientos correctos de este ejercicio usando el formato Markdown. Los alumnos verán esta solución cuando reciban tu retroalimentación.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={downloadSolutionTemplate} data-testid="button-download-solution-template">
+                <Download className="w-4 h-4 mr-1.5" />
+                Descargar plantilla
+              </Button>
+              <input
+                ref={solutionFileInputRef}
+                type="file"
+                accept=".md,.txt,.markdown"
+                className="hidden"
+                onChange={handleSolutionFileUpload}
+              />
+              <Button variant="outline" size="sm" onClick={() => solutionFileInputRef.current?.click()} data-testid="button-upload-solution-file">
+                <FileText className="w-4 h-4 mr-1.5" />
+                Subir archivo .md
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Contenido Markdown</Label>
+              <Textarea
+                data-testid="textarea-solution-content"
+                value={solutionText}
+                onChange={e => setSolutionText(e.target.value)}
+                placeholder={`## Asiento 1: Descripción\nFecha: 2024-01-15\n\n| Cuenta | Debe | Haber |\n|--------|------|-------|\n| 600 Compras de mercaderías | 5.000,00 | |\n| 472 H.P. IVA soportado | 1.050,00 | |\n| 400 Proveedores | | 6.050,00 |`}
+                className="font-mono text-xs"
+                rows={12}
+              />
+            </div>
+
+            {solutionPreview.length > 0 && (
+              <div className="space-y-2">
+                <Label>Vista previa ({solutionPreview.length} asiento{solutionPreview.length !== 1 ? "s" : ""} detectado{solutionPreview.length !== 1 ? "s" : ""})</Label>
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {solutionPreview.map((entry, i) => (
+                    <div key={i} className="bg-muted/50 rounded-md px-3 py-2 text-sm" data-testid={`preview-solution-entry-${i}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">Asiento {entry.entryNumber}: {entry.description}</span>
+                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                      </div>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-muted-foreground">
+                            <th className="text-left py-0.5">Cuenta</th>
+                            <th className="text-right py-0.5">Debe</th>
+                            <th className="text-right py-0.5">Haber</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entry.lines.map((line, j) => (
+                            <tr key={j} className="border-t border-muted">
+                              <td className="py-0.5">{line.accountCode} {line.accountName}</td>
+                              <td className="text-right py-0.5">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                              <td className="text-right py-0.5">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button
+              data-testid="button-save-solution"
+              className="w-full"
+              onClick={handleSaveSolution}
+              disabled={solutionPreview.length === 0 || saveSolutionMutation.isPending}
+            >
+              {saveSolutionMutation.isPending ? "Guardando..." : `Guardar solución (${solutionPreview.length} asiento${solutionPreview.length !== 1 ? "s" : ""})`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewSolutionId} onOpenChange={(open) => { if (!open) setViewSolutionId(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Solución del ejercicio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {solutionData?.solution && solutionData.solution.length > 0 ? (
+              <div className="space-y-3">
+                {solutionData.solution.map((entry: SolutionEntry, i: number) => (
+                  <div key={i} className="bg-muted/50 rounded-md px-3 py-2 text-sm" data-testid={`view-solution-entry-${i}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium">Asiento {entry.entryNumber}: {entry.description}</span>
+                      <span className="text-xs text-muted-foreground">{entry.date}</span>
+                    </div>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-muted-foreground">
+                          <th className="text-left py-0.5">Cuenta</th>
+                          <th className="text-right py-0.5">Debe</th>
+                          <th className="text-right py-0.5">Haber</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {entry.lines.map((line: SolutionLine, j: number) => (
+                          <tr key={j} className="border-t border-muted">
+                            <td className="py-0.5">{line.accountCode} {line.accountName}</td>
+                            <td className="text-right py-0.5">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                            <td className="text-right py-0.5">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No hay solución cargada para este ejercicio.</p>
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setSolutionExerciseId(viewSolutionId); setSolutionText(""); setViewSolutionId(null); }}
+                data-testid="button-replace-solution"
+              >
+                <FileUp className="w-4 h-4 mr-1.5" />
+                Reemplazar solución
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive"
+                onClick={() => viewSolutionId && deleteSolutionMutation.mutate(viewSolutionId)}
+                disabled={deleteSolutionMutation.isPending}
+                data-testid="button-delete-solution"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                Eliminar solución
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
