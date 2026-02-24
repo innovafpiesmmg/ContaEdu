@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
@@ -6,10 +6,32 @@ import { examAttempts } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import path from "path";
+import fs from "fs";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { sendPasswordResetEmail } from "./mail";
+import multer from "multer";
+
+const UPLOADS_DIR = path.join(process.cwd(), "uploads", "documents");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const documentUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const uniqueName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    },
+  }),
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Solo se permiten archivos PDF e imágenes (JPG, PNG, WEBP)"));
+  },
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
 
 declare module "express-session" {
   interface SessionData {
@@ -523,6 +545,55 @@ export async function registerRoutes(
       const { courseId } = req.body;
       if (!courseId) return res.status(400).json({ message: "Falta el ID del curso" });
       await storage.unassignExerciseFromCourse(courseId, req.params.id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Exercise documents (PDF uploads)
+  app.use("/uploads/documents", express.static(UPLOADS_DIR));
+
+  app.get("/api/exercises/:id/documents", requireAuth, async (req: any, res) => {
+    const docs = await storage.getExerciseDocuments(req.params.id);
+    res.json(docs);
+  });
+
+  app.post("/api/exercises/:id/documents", requireRole("teacher"), documentUpload.array("files", 10), async (req: any, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) return res.status(400).json({ message: "No se han subido archivos" });
+
+      const existingDocs = await storage.getExerciseDocuments(req.params.id);
+      let sortOrder = existingDocs.length;
+
+      const results = [];
+      for (const file of files) {
+        const doc = await storage.addExerciseDocument({
+          exerciseId: req.params.id,
+          fileName: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          sortOrder: sortOrder++,
+        });
+        results.push(doc);
+      }
+      res.json(results);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/exercises/:exerciseId/documents/:docId", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const docs = await storage.getExerciseDocuments(req.params.exerciseId);
+      const doc = docs.find(d => d.id === req.params.docId);
+      if (doc) {
+        const filePath = path.join(UPLOADS_DIR, doc.fileName);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        await storage.deleteExerciseDocument(doc.id);
+      }
       res.json({ ok: true });
     } catch (err: any) {
       res.status(400).json({ message: err.message });

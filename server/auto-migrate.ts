@@ -81,6 +81,16 @@ export async function runAutoMigrations() {
       solution text
     )`);
 
+    await client.query(`CREATE TABLE IF NOT EXISTS exercise_documents (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      exercise_id varchar NOT NULL,
+      file_name text NOT NULL,
+      original_name text NOT NULL,
+      mime_type text NOT NULL,
+      file_size integer NOT NULL,
+      sort_order integer NOT NULL DEFAULT 0
+    )`);
+
     await client.query(`CREATE TABLE IF NOT EXISTS course_exercises (
       id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
       course_id varchar NOT NULL,

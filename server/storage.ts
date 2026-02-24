@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import {
-  users, schoolYears, systemConfig, courses, accounts, exercises, courseExercises,
+  users, schoolYears, systemConfig, courses, accounts, exercises, exerciseDocuments, courseExercises,
   journalEntries, journalLines, exams, examAttempts, exerciseSubmissions,
   mailConfig, passwordResetTokens,
   type User, type InsertUser,
@@ -10,6 +10,7 @@ import {
   type Course, type InsertCourse,
   type Account, type InsertAccount,
   type Exercise, type InsertExercise,
+  type ExerciseDocument, type InsertExerciseDocument,
   type JournalEntry, type InsertJournalEntry,
   type JournalLine, type InsertJournalLine,
   type Exam, type InsertExam,
@@ -65,6 +66,10 @@ export interface IStorage {
   createExercise(exercise: InsertExercise): Promise<Exercise>;
   deleteExercise(id: string): Promise<void>;
   updateExerciseSolution(id: string, solution: string | null): Promise<Exercise>;
+
+  getExerciseDocuments(exerciseId: string): Promise<ExerciseDocument[]>;
+  addExerciseDocument(doc: InsertExerciseDocument): Promise<ExerciseDocument>;
+  deleteExerciseDocument(id: string): Promise<void>;
 
   getCourseExercises(courseId: string): Promise<CourseExercise[]>;
   assignExerciseToCourse(courseId: string, exerciseId: string): Promise<CourseExercise>;
@@ -265,6 +270,21 @@ export class DatabaseStorage implements IStorage {
   async updateExerciseSolution(id: string, solution: string | null): Promise<Exercise> {
     const [updated] = await db.update(exercises).set({ solution }).where(eq(exercises.id, id)).returning();
     return updated;
+  }
+
+  async getExerciseDocuments(exerciseId: string): Promise<ExerciseDocument[]> {
+    return db.select().from(exerciseDocuments)
+      .where(eq(exerciseDocuments.exerciseId, exerciseId))
+      .orderBy(exerciseDocuments.sortOrder);
+  }
+
+  async addExerciseDocument(doc: InsertExerciseDocument): Promise<ExerciseDocument> {
+    const [created] = await db.insert(exerciseDocuments).values(doc).returning();
+    return created;
+  }
+
+  async deleteExerciseDocument(id: string): Promise<void> {
+    await db.delete(exerciseDocuments).where(eq(exerciseDocuments.id, id));
   }
 
   async getCourseExercises(courseId: string): Promise<CourseExercise[]> {
