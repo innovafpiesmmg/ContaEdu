@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpenCheck, Trash2, X, AlertCircle } from "lucide-react";
+import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useExercise } from "@/lib/exercise-context";
 import { useLocation } from "wouter";
-import type { JournalEntry, JournalLine, Account, Exercise } from "@shared/schema";
+import type { JournalEntry, JournalLine, Account, Exercise, Exam, ExerciseDocument } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface JournalEntryWithLines extends JournalEntry {
@@ -25,6 +25,133 @@ interface LineDraft {
   accountName: string;
   debit: string;
   credit: string;
+}
+
+function JournalDocumentsViewer({ exerciseId }: { exerciseId: string }) {
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+  const { data: documents } = useQuery<ExerciseDocument[]>({
+    queryKey: ["/api/exercises", exerciseId, "documents"],
+    queryFn: () => fetch(`/api/exercises/${exerciseId}/documents`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  if (!documents || documents.length === 0) return null;
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Paperclip className="w-4 h-4 text-blue-600" />
+        <span className="text-sm font-medium">Documentos adjuntos</span>
+        <Badge variant="outline" className="text-xs">{documents.length}</Badge>
+      </div>
+      <div className="space-y-1.5">
+        {documents.map(doc => (
+          <div key={doc.id}>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/uploads/documents/${doc.fileName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                data-testid={`journal-doc-link-${doc.id}`}
+              >
+                {doc.mimeType === "application/pdf" ? (
+                  <FileText className="w-4 h-4 shrink-0" />
+                ) : (
+                  <FileIcon className="w-4 h-4 shrink-0" />
+                )}
+                <span className="truncate">{doc.originalName}</span>
+              </a>
+              {(doc.mimeType === "application/pdf" || doc.mimeType.startsWith("image/")) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setViewingDoc(viewingDoc === doc.id ? null : doc.id)}
+                  data-testid={`journal-preview-doc-${doc.id}`}
+                >
+                  {viewingDoc === doc.id ? <ChevronUp className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {viewingDoc === doc.id ? "Ocultar" : "Vista previa"}
+                </Button>
+              )}
+            </div>
+            {viewingDoc === doc.id && doc.mimeType === "application/pdf" && (
+              <div className="mt-2 border rounded-lg overflow-hidden">
+                <iframe src={`/uploads/documents/${doc.fileName}`} className="w-full h-[500px]" title={doc.originalName} />
+              </div>
+            )}
+            {viewingDoc === doc.id && doc.mimeType.startsWith("image/") && (
+              <div className="mt-2 border rounded-lg overflow-hidden p-2">
+                <img src={`/uploads/documents/${doc.fileName}`} alt={doc.originalName} className="max-w-full rounded" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exerciseId: string }) {
+  const [expanded, setExpanded] = useState(true);
+
+  const { data: exams } = useQuery<Exam[]>({
+    queryKey: ["/api/exams"],
+  });
+
+  const linkedExam = exams?.find(exam => exam.exerciseId === exerciseId && exam.isActive);
+
+  if (!exercise) return null;
+
+  return (
+    <Card className="border-primary/20" data-testid="enunciado-panel">
+      <CardContent className="p-0">
+        <button
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors"
+          onClick={() => setExpanded(!expanded)}
+          data-testid="button-toggle-enunciado"
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary" />
+            <span className="font-medium text-sm">Enunciado</span>
+            {linkedExam && (
+              <Badge variant="outline" className="text-[10px] gap-1 text-amber-600 border-amber-300">
+                <Clock className="w-3 h-3" />
+                Examen
+              </Badge>
+            )}
+          </div>
+          {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
+        {expanded && (
+          <div className="px-4 pb-4 space-y-3">
+            {linkedExam && (
+              <>
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-1">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    {linkedExam.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.description}</p>
+                  {linkedExam.instructions && (
+                    <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700">
+                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Instrucciones:</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.instructions}</p>
+                    </div>
+                  )}
+                </div>
+                <Separator />
+              </>
+            )}
+            <div>
+              <h4 className="text-sm font-semibold mb-1">{exercise.title}</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{exercise.description}</p>
+            </div>
+            <JournalDocumentsViewer exerciseId={exerciseId} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function JournalPage() {
@@ -170,6 +297,7 @@ export default function JournalPage() {
           )}
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+
           <DialogTrigger asChild>
             <Button data-testid="button-new-entry">
               <Plus className="w-4 h-4 mr-2" />
@@ -296,6 +424,8 @@ export default function JournalPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <EnunciadoPanel exercise={currentExercise} exerciseId={currentExerciseId} />
 
       {isLoading ? (
         <div className="space-y-3">
