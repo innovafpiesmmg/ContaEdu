@@ -156,6 +156,7 @@ export async function runAutoMigrations() {
     await addColumnIfNotExists(client, "courses", "enrollment_code", "text UNIQUE");
     await addColumnIfNotExists(client, "journal_entries", "exercise_id", "varchar");
     await addColumnIfNotExists(client, "accounts", "user_id", "varchar");
+    await addColumnIfNotExists(client, "exercises", "solution", "text");
 
     console.log("[auto-migrate] Schema verificado correctamente");
   } catch (err: any) {

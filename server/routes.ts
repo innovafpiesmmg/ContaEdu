@@ -504,6 +504,54 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // Exercise solutions
+  app.get("/api/exercises/:id/solution", requireRole("teacher"), async (req: any, res) => {
+    const allExercises = await storage.getExercisesByTeacher(req.session.userId);
+    const exercise = allExercises.find(e => e.id === req.params.id);
+    if (!exercise) {
+      return res.status(404).json({ message: "Ejercicio no encontrado" });
+    }
+    res.json({ solution: exercise.solution ? JSON.parse(exercise.solution) : null });
+  });
+
+  app.post("/api/exercises/:id/solution", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const allExercises = await storage.getExercisesByTeacher(req.session.userId);
+      const exercise = allExercises.find(e => e.id === req.params.id);
+      if (!exercise) {
+        return res.status(404).json({ message: "Ejercicio no encontrado" });
+      }
+      const { entries } = req.body;
+      if (!entries || !Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({ message: "La solución debe contener al menos un asiento" });
+      }
+      for (const entry of entries) {
+        if (!entry.description || !entry.lines || !Array.isArray(entry.lines) || entry.lines.length < 2) {
+          return res.status(400).json({ message: "Cada asiento debe tener descripción y al menos 2 líneas" });
+        }
+        for (const line of entry.lines) {
+          if (!line.accountCode || !line.accountName) {
+            return res.status(400).json({ message: "Cada línea debe tener código y nombre de cuenta" });
+          }
+        }
+      }
+      const updated = await storage.updateExerciseSolution(req.params.id, JSON.stringify(entries));
+      res.json({ ok: true, solution: JSON.parse(updated.solution!) });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/exercises/:id/solution", requireRole("teacher"), async (req: any, res) => {
+    const allExercises = await storage.getExercisesByTeacher(req.session.userId);
+    const exercise = allExercises.find(e => e.id === req.params.id);
+    if (!exercise) {
+      return res.status(404).json({ message: "Ejercicio no encontrado" });
+    }
+    await storage.updateExerciseSolution(req.params.id, null);
+    res.json({ ok: true });
+  });
+
   // Journal entries - now exercise-scoped
   app.get("/api/journal-entries", requireAuth, async (req: any, res) => {
     const exerciseId = req.query.exerciseId as string | undefined;

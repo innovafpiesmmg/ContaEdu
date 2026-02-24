@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye } from "lucide-react";
+import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Exercise, Course, ExerciseSubmission } from "@shared/schema";
@@ -65,6 +65,96 @@ Registrar:
 `;
 }
 
+interface SolutionLine {
+  accountCode: string;
+  accountName: string;
+  debit: string;
+  credit: string;
+}
+
+interface SolutionEntry {
+  entryNumber: number;
+  date: string;
+  description: string;
+  lines: SolutionLine[];
+}
+
+function generateSolutionTemplate(): string {
+  return `## Asiento 1: Compra de mercaderías
+Fecha: 2024-01-15
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías | 5.000,00 | |
+| 472 H.P. IVA soportado | 1.050,00 | |
+| 400 Proveedores | | 6.050,00 |
+
+## Asiento 2: Venta de productos
+Fecha: 2024-01-20
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 9.680,00 | |
+| 700 Ventas de mercaderías | | 8.000,00 |
+| 477 H.P. IVA repercutido | | 1.680,00 |
+
+## Asiento 3: Cobro del cliente
+Fecha: 2024-02-15
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 9.680,00 | |
+| 430 Clientes | | 9.680,00 |
+`;
+}
+
+function parseSolutionMD(md: string): SolutionEntry[] {
+  const entries: SolutionEntry[] = [];
+  const blocks = md.split(/(?=##\s+Asiento\s+\d+)/i).map(b => b.trim()).filter(Boolean);
+
+  for (const block of blocks) {
+    const headerMatch = block.match(/^##\s+Asiento\s+(\d+)\s*[:\-]?\s*(.*)$/im);
+    if (!headerMatch) continue;
+
+    const entryNumber = parseInt(headerMatch[1]);
+    const description = headerMatch[2].trim();
+    const dateMatch = block.match(/Fecha:\s*(\S+)/i);
+    const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
+
+    const lines: SolutionLine[] = [];
+    const tableRows = block.match(/\|[^|\n]+\|[^|\n]+\|[^|\n]+\|/g);
+    if (tableRows) {
+      for (const row of tableRows) {
+        if (row.includes("Cuenta") || row.includes("---")) continue;
+        const cells = row.split("|").map(c => c.trim()).filter(Boolean);
+        if (cells.length < 3) continue;
+
+        const accountFull = cells[0].trim();
+        const codeMatch = accountFull.match(/^(\d+)\s+(.+)$/);
+        if (!codeMatch) continue;
+
+        const rawDebit = cells[1].trim().replace(/\./g, "").replace(",", ".");
+        const rawCredit = cells[2].trim().replace(/\./g, "").replace(",", ".");
+        const debit = parseFloat(rawDebit) || 0;
+        const credit = parseFloat(rawCredit) || 0;
+
+        lines.push({
+          accountCode: codeMatch[1],
+          accountName: codeMatch[2].trim(),
+          debit: debit.toFixed(2),
+          credit: credit.toFixed(2),
+        });
+      }
+    }
+
+    if (lines.length >= 2) {
+      entries.push({ entryNumber, date, description, lines });
+    }
+  }
+
+  return entries;
+}
+
 function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string }> {
   const exercises: Array<{ title: string; description: string; exerciseType: string }> = [];
   const blocks = md.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
@@ -95,8 +185,12 @@ export default function ExercisesPage() {
   const [feedbackText, setFeedbackText] = useState("");
   const [gradeText, setGradeText] = useState("");
   const [form, setForm] = useState({ title: "", description: "", exerciseType: "practice" as string, courseId: "" });
+  const [solutionExerciseId, setSolutionExerciseId] = useState<string | null>(null);
+  const [solutionText, setSolutionText] = useState("");
+  const [viewSolutionId, setViewSolutionId] = useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const solutionFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: exercises, isLoading } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
@@ -142,6 +236,41 @@ export default function ExercisesPage() {
     },
     onError: (err: Error) => {
       toast({ title: "Error al importar", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const { data: solutionData } = useQuery<{ solution: SolutionEntry[] | null }>({
+    queryKey: ["/api/exercises", viewSolutionId, "solution"],
+    queryFn: () => fetch(`/api/exercises/${viewSolutionId}/solution`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!viewSolutionId,
+  });
+
+  const saveSolutionMutation = useMutation({
+    mutationFn: (data: { exerciseId: string; entries: SolutionEntry[] }) =>
+      apiRequest("POST", `/api/exercises/${data.exerciseId}/solution`, { entries: data.entries }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
+      if (solutionExerciseId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/exercises", solutionExerciseId, "solution"] });
+      }
+      setSolutionExerciseId(null);
+      setSolutionText("");
+      toast({ title: "Solución guardada correctamente" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteSolutionMutation = useMutation({
+    mutationFn: (exerciseId: string) => apiRequest("DELETE", `/api/exercises/${exerciseId}/solution`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
+      if (viewSolutionId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/exercises", viewSolutionId, "solution"] });
+      }
+      setViewSolutionId(null);
+      toast({ title: "Solución eliminada" });
     },
   });
 

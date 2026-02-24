@@ -62,6 +62,7 @@ export interface IStorage {
   getExercisesByCourse(courseId: string): Promise<Exercise[]>;
   createExercise(exercise: InsertExercise): Promise<Exercise>;
   deleteExercise(id: string): Promise<void>;
+  updateExerciseSolution(id: string, solution: string | null): Promise<Exercise>;
 
   getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
   createJournalEntry(entry: InsertJournalEntry, lines: InsertJournalLine[]): Promise<JournalEntry>;
@@ -243,6 +244,11 @@ export class DatabaseStorage implements IStorage {
 
   async deleteExercise(id: string): Promise<void> {
     await db.delete(exercises).where(eq(exercises.id, id));
+  }
+
+  async updateExerciseSolution(id: string, solution: string | null): Promise<Exercise> {
+    const [updated] = await db.update(exercises).set({ solution }).where(eq(exercises.id, id)).returning();
+    return updated;
   }
 
   async getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]> {

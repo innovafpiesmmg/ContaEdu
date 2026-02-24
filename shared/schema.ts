@@ -58,6 +58,7 @@ export const exercises = pgTable("exercises", {
   exerciseType: exerciseTypeEnum("exercise_type").notNull().default("practice"),
   courseId: varchar("course_id").notNull(),
   teacherId: varchar("teacher_id").notNull(),
+  solution: text("solution"),
 });
 
 export const journalEntries = pgTable("journal_entries", {
