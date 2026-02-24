@@ -91,6 +91,12 @@ function JournalDocumentsViewer({ exerciseId }: { exerciseId: string }) {
   );
 }
 
+interface TaskItem {
+  entryNumber: number;
+  description: string;
+  points?: number;
+}
+
 function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exerciseId: string }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -98,7 +104,14 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
     queryKey: ["/api/exams"],
   });
 
+  const { data: tasksData } = useQuery<{ tasks: TaskItem[] }>({
+    queryKey: ["/api/exercises", exerciseId, "tasks"],
+    queryFn: () => fetch(`/api/exercises/${exerciseId}/tasks`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!exerciseId,
+  });
+
   const linkedExam = exams?.find(exam => exam.exerciseId === exerciseId && exam.isActive);
+  const tasks = tasksData?.tasks || [];
 
   if (!exercise) return null;
 
@@ -117,6 +130,11 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
               <Badge variant="outline" className="text-[10px] gap-1 text-amber-600 border-amber-300">
                 <Clock className="w-3 h-3" />
                 Examen
+              </Badge>
+            )}
+            {tasks.length > 0 && (
+              <Badge variant="outline" className="text-[10px]">
+                {tasks.length} asiento{tasks.length !== 1 ? "s" : ""}
               </Badge>
             )}
           </div>
@@ -146,6 +164,28 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
               <h4 className="text-sm font-semibold mb-1">{exercise.title}</h4>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{exercise.description}</p>
             </div>
+
+            {tasks.length > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">Asientos a registrar:</p>
+                <ol className="space-y-1.5">
+                  {tasks.map((task, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm" data-testid={`task-item-${i}`}>
+                      <Badge variant="secondary" className="font-mono text-[10px] shrink-0 w-6 h-5 flex items-center justify-center p-0">
+                        {task.entryNumber}
+                      </Badge>
+                      <span className="text-foreground">{task.description}</span>
+                      {task.points !== undefined && task.points > 0 && (
+                        <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300 ml-auto shrink-0">
+                          {task.points} pts
+                        </Badge>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
             <JournalDocumentsViewer exerciseId={exerciseId} />
           </div>
         )}

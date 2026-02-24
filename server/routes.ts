@@ -707,6 +707,28 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/exercises/:id/tasks", requireAuth, async (req: any, res) => {
+    try {
+      const exerciseId = req.params.id;
+      const allExercises = await storage.getExercises();
+      const exercise = allExercises.find(e => e.id === exerciseId);
+      if (!exercise || !exercise.solution) {
+        return res.json({ tasks: [] });
+      }
+      const solution = JSON.parse(exercise.solution);
+      const tasks = Array.isArray(solution)
+        ? solution.map((entry: any) => ({
+            entryNumber: entry.entryNumber,
+            description: entry.description || "",
+            points: entry.points,
+          }))
+        : [];
+      res.json({ tasks });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Journal entries - now exercise-scoped
   app.get("/api/journal-entries", requireAuth, async (req: any, res) => {
     const exerciseId = req.query.exerciseId as string | undefined;
