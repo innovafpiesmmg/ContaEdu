@@ -17,9 +17,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   const isProduction = process.env.NODE_ENV === "production";
-  if (isProduction) {
-    app.set("trust proxy", 1);
-  }
+  app.set("trust proxy", true);
 
   const PgSession = connectPg(session);
   app.use(
@@ -29,12 +27,11 @@ export async function registerRoutes(
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: false,
+        secure: "auto",
         httpOnly: true,
         sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },
-      proxy: isProduction,
     })
   );
 
