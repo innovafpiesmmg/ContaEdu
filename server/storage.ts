@@ -2,7 +2,7 @@ import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import {
   users, schoolYears, systemConfig, courses, accounts, exercises,
-  journalEntries, journalLines,
+  journalEntries, journalLines, exams, examAttempts,
   type User, type InsertUser,
   type SchoolYear, type InsertSchoolYear,
   type SystemConfig,
@@ -11,6 +11,8 @@ import {
   type Exercise, type InsertExercise,
   type JournalEntry, type InsertJournalEntry,
   type JournalLine, type InsertJournalLine,
+  type Exam, type InsertExam,
+  type ExamAttempt, type InsertExamAttempt,
 } from "@shared/schema";
 
 function generateEnrollmentCode(): string {
@@ -64,6 +66,18 @@ export interface IStorage {
 
   getLedger(userId: string, exerciseId?: string): Promise<any[]>;
   getTrialBalance(userId: string, exerciseId?: string): Promise<any>;
+
+  getExamsByTeacher(teacherId: string): Promise<Exam[]>;
+  getExamsByCourse(courseId: string): Promise<Exam[]>;
+  getExam(id: string): Promise<Exam | undefined>;
+  createExam(exam: InsertExam): Promise<Exam>;
+  updateExam(id: string, data: Partial<Exam>): Promise<Exam>;
+  deleteExam(id: string): Promise<void>;
+
+  getExamAttempt(examId: string, studentId: string): Promise<ExamAttempt | undefined>;
+  getExamAttemptsByExam(examId: string): Promise<ExamAttempt[]>;
+  createExamAttempt(attempt: InsertExamAttempt): Promise<ExamAttempt>;
+  submitExamAttempt(id: string): Promise<ExamAttempt>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -312,6 +326,57 @@ export class DatabaseStorage implements IStorage {
     }), { debitSum: 0, creditSum: 0, debitBalance: 0, creditBalance: 0 });
 
     return { rows, totals };
+  }
+
+  async getExamsByTeacher(teacherId: string): Promise<Exam[]> {
+    return db.select().from(exams).where(eq(exams.teacherId, teacherId));
+  }
+
+  async getExamsByCourse(courseId: string): Promise<Exam[]> {
+    return db.select().from(exams).where(eq(exams.courseId, courseId));
+  }
+
+  async getExam(id: string): Promise<Exam | undefined> {
+    const [exam] = await db.select().from(exams).where(eq(exams.id, id));
+    return exam;
+  }
+
+  async createExam(exam: InsertExam): Promise<Exam> {
+    const [created] = await db.insert(exams).values(exam).returning();
+    return created;
+  }
+
+  async updateExam(id: string, data: Partial<Exam>): Promise<Exam> {
+    const [updated] = await db.update(exams).set(data).where(eq(exams.id, id)).returning();
+    return updated;
+  }
+
+  async deleteExam(id: string): Promise<void> {
+    await db.delete(examAttempts).where(eq(examAttempts.examId, id));
+    await db.delete(exams).where(eq(exams.id, id));
+  }
+
+  async getExamAttempt(examId: string, studentId: string): Promise<ExamAttempt | undefined> {
+    const [attempt] = await db.select().from(examAttempts)
+      .where(and(eq(examAttempts.examId, examId), eq(examAttempts.studentId, studentId)));
+    return attempt;
+  }
+
+  async getExamAttemptsByExam(examId: string): Promise<ExamAttempt[]> {
+    return db.select().from(examAttempts).where(eq(examAttempts.examId, examId));
+  }
+
+  async createExamAttempt(attempt: InsertExamAttempt): Promise<ExamAttempt> {
+    const [created] = await db.insert(examAttempts).values(attempt).returning();
+    return created;
+  }
+
+  async submitExamAttempt(id: string): Promise<ExamAttempt> {
+    const [updated] = await db.update(examAttempts)
+      .set({ submittedAt: new Date().toISOString(), status: "submitted" as any })
+      .where(eq(examAttempts.id, id))
+      .returning();
+    return updated;
   }
 }
 

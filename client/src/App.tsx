@@ -22,6 +22,7 @@ import CoursesPage from "@/pages/teacher/courses";
 import StudentsPage from "@/pages/teacher/students";
 import TeacherExercisesPage from "@/pages/teacher/exercises";
 import StudentAuditPage from "@/pages/teacher/student-audit";
+import TeacherExamsPage from "@/pages/teacher/exams";
 
 import StudentDashboard from "@/pages/student/dashboard";
 import JournalPage from "@/pages/student/journal";
@@ -30,6 +31,8 @@ import BalancesPage from "@/pages/student/balances";
 import AccountsPage from "@/pages/student/accounts";
 import StudentExercisesPage from "@/pages/student/student-exercises";
 import ManualPage from "@/pages/student/manual";
+import StudentExamsPage from "@/pages/student/student-exams";
+import AnaliticaPage from "@/pages/student/analitica";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function AdminRouter() {
@@ -52,6 +55,7 @@ function TeacherRouter() {
       <Route path="/students" component={StudentsPage} />
       <Route path="/students/:id/audit" component={StudentAuditPage} />
       <Route path="/exercises" component={TeacherExercisesPage} />
+      <Route path="/exams" component={TeacherExamsPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -66,7 +70,9 @@ function StudentRouter() {
       <Route path="/balances" component={BalancesPage} />
       <Route path="/accounts" component={AccountsPage} />
       <Route path="/exercises" component={StudentExercisesPage} />
+      <Route path="/exams" component={StudentExamsPage} />
       <Route path="/manual" component={ManualPage} />
+      <Route path="/analitica" component={AnaliticaPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { examAttempts } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -454,6 +457,165 @@ export async function registerRoutes(
     const exerciseId = req.query.exerciseId as string | undefined;
     const balance = await storage.getTrialBalance(req.params.studentId, exerciseId);
     res.json(balance);
+  });
+
+  // Exams - Teacher management
+  app.get("/api/exams", requireAuth, async (req: any, res) => {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "No autenticado" });
+
+    if (user.role === "teacher") {
+      const examList = await storage.getExamsByTeacher(user.id);
+      res.json(examList);
+    } else if (user.role === "student" && user.courseId) {
+      const examList = await storage.getExamsByCourse(user.courseId);
+      const activeExams = examList.filter(e => e.isActive);
+      res.json(activeExams);
+    } else {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/exams/:id", requireAuth, async (req: any, res) => {
+    const exam = await storage.getExam(req.params.id);
+    if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+    res.json(exam);
+  });
+
+  app.post("/api/exams", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const { title, description, instructions, exerciseId, courseId, durationMinutes, availableFrom, availableTo } = req.body;
+      if (!title || !description || !exerciseId || !courseId) {
+        return res.status(400).json({ message: "Faltan campos obligatorios" });
+      }
+      const exam = await storage.createExam({
+        title,
+        description,
+        instructions: instructions || null,
+        exerciseId,
+        courseId,
+        teacherId: req.user.id,
+        durationMinutes: durationMinutes || 60,
+        availableFrom: availableFrom || null,
+        availableTo: availableTo || null,
+        isActive: false,
+      });
+      res.json(exam);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/exams/:id", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const exam = await storage.getExam(req.params.id);
+      if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+      if (exam.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+      const updated = await storage.updateExam(req.params.id, req.body);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/exams/:id", requireRole("teacher"), async (req: any, res) => {
+    const exam = await storage.getExam(req.params.id);
+    if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+    if (exam.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+    await storage.deleteExam(req.params.id);
+    res.json({ ok: true });
+  });
+
+  // Exam attempts - Student
+  app.get("/api/exams/:examId/attempt", requireRole("student"), async (req: any, res) => {
+    const exam = await storage.getExam(req.params.examId);
+    if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+    if (exam.courseId !== req.user.courseId) return res.status(403).json({ message: "Sin acceso a este examen" });
+    const attempt = await storage.getExamAttempt(req.params.examId, req.user.id);
+    if (attempt) {
+      const start = new Date(attempt.startedAt).getTime();
+      const elapsed = (Date.now() - start) / 1000 / 60;
+      if (attempt.status === "in_progress" && elapsed > exam.durationMinutes) {
+        const expired = await storage.submitExamAttempt(attempt.id);
+        await db.update(examAttempts).set({ status: "expired" as any }).where(eq(examAttempts.id, attempt.id));
+        return res.json({ ...expired, status: "expired" });
+      }
+    }
+    res.json(attempt || null);
+  });
+
+  app.get("/api/exams/:examId/attempts", requireRole("teacher"), async (req: any, res) => {
+    const exam = await storage.getExam(req.params.examId);
+    if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+    if (exam.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+    const attempts = await storage.getExamAttemptsByExam(req.params.examId);
+    const enriched = [];
+    for (const a of attempts) {
+      const student = await storage.getUser(a.studentId);
+      enriched.push({ ...a, studentName: student?.fullName || "Desconocido" });
+    }
+    res.json(enriched);
+  });
+
+  app.post("/api/exams/:examId/start", requireRole("student"), async (req: any, res) => {
+    try {
+      const exam = await storage.getExam(req.params.examId);
+      if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+      if (exam.courseId !== req.user.courseId) return res.status(403).json({ message: "Sin acceso a este examen" });
+      if (!exam.isActive) return res.status(400).json({ message: "El examen no esta activo" });
+
+      const existing = await storage.getExamAttempt(req.params.examId, req.user.id);
+      if (existing) {
+        if (existing.status === "submitted" || existing.status === "expired") {
+          return res.status(400).json({ message: "Ya has entregado este examen" });
+        }
+        const start = new Date(existing.startedAt).getTime();
+        const elapsed = (Date.now() - start) / 1000 / 60;
+        if (elapsed > exam.durationMinutes) {
+          await db.update(examAttempts).set({ status: "expired" as any, submittedAt: new Date().toISOString() }).where(eq(examAttempts.id, existing.id));
+          return res.status(400).json({ message: "El tiempo del examen ha expirado" });
+        }
+        return res.json(existing);
+      }
+
+      const attempt = await storage.createExamAttempt({
+        examId: req.params.examId,
+        studentId: req.user.id,
+        startedAt: new Date().toISOString(),
+        status: "in_progress",
+      });
+      res.json(attempt);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/exams/:examId/submit", requireRole("student"), async (req: any, res) => {
+    try {
+      const exam = await storage.getExam(req.params.examId);
+      if (!exam) return res.status(404).json({ message: "Examen no encontrado" });
+      if (exam.courseId !== req.user.courseId) return res.status(403).json({ message: "Sin acceso a este examen" });
+
+      const attempt = await storage.getExamAttempt(req.params.examId, req.user.id);
+      if (!attempt) return res.status(404).json({ message: "No hay intento activo" });
+      if (attempt.status === "submitted" || attempt.status === "expired") {
+        return res.status(400).json({ message: "Ya entregado" });
+      }
+
+      const start = new Date(attempt.startedAt).getTime();
+      const elapsed = (Date.now() - start) / 1000 / 60;
+      const isExpired = elapsed > exam.durationMinutes;
+
+      if (isExpired) {
+        await db.update(examAttempts).set({ status: "expired" as any, submittedAt: new Date().toISOString() }).where(eq(examAttempts.id, attempt.id));
+        return res.json({ ...attempt, status: "expired", submittedAt: new Date().toISOString() });
+      }
+
+      const submitted = await storage.submitExamAttempt(attempt.id);
+      res.json(submitted);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
   });
 
   return httpServer;

@@ -7,6 +7,7 @@ export const userRoleEnum = pgEnum("user_role", ["admin", "teacher", "student"])
 export const taxRegimeEnum = pgEnum("tax_regime", ["iva", "igic"]);
 export const exerciseTypeEnum = pgEnum("exercise_type", ["guided", "practice"]);
 export const accountTypeEnum = pgEnum("account_type", ["asset", "liability", "equity", "income", "expense"]);
+export const examStatusEnum = pgEnum("exam_status", ["not_started", "in_progress", "submitted", "expired"]);
 
 export const schoolYears = pgTable("school_years", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -75,6 +76,29 @@ export const journalLines = pgTable("journal_lines", {
   credit: decimal("credit", { precision: 12, scale: 2 }).notNull().default("0"),
 });
 
+export const exams = pgTable("exams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  instructions: text("instructions"),
+  exerciseId: varchar("exercise_id").notNull(),
+  courseId: varchar("course_id").notNull(),
+  teacherId: varchar("teacher_id").notNull(),
+  durationMinutes: integer("duration_minutes").notNull().default(60),
+  availableFrom: text("available_from"),
+  availableTo: text("available_to"),
+  isActive: boolean("is_active").notNull().default(false),
+});
+
+export const examAttempts = pgTable("exam_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  examId: varchar("exam_id").notNull(),
+  studentId: varchar("student_id").notNull(),
+  startedAt: text("started_at").notNull(),
+  submittedAt: text("submitted_at"),
+  status: examStatusEnum("status").notNull().default("not_started"),
+});
+
 // Insert schemas
 export const insertSchoolYearSchema = createInsertSchema(schoolYears).omit({ id: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
@@ -83,6 +107,8 @@ export const insertAccountSchema = createInsertSchema(accounts).omit({ id: true 
 export const insertExerciseSchema = createInsertSchema(exercises).omit({ id: true });
 export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({ id: true });
 export const insertJournalLineSchema = createInsertSchema(journalLines).omit({ id: true });
+export const insertExamSchema = createInsertSchema(exams).omit({ id: true });
+export const insertExamAttemptSchema = createInsertSchema(examAttempts).omit({ id: true });
 
 // Types
 export type SchoolYear = typeof schoolYears.$inferSelect;
@@ -100,6 +126,10 @@ export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
 export type JournalLine = typeof journalLines.$inferSelect;
 export type InsertJournalLine = z.infer<typeof insertJournalLineSchema>;
 export type SystemConfig = typeof systemConfig.$inferSelect;
+export type Exam = typeof exams.$inferSelect;
+export type InsertExam = z.infer<typeof insertExamSchema>;
+export type ExamAttempt = typeof examAttempts.$inferSelect;
+export type InsertExamAttempt = z.infer<typeof insertExamAttemptSchema>;
 
 // Login schema
 export const loginSchema = z.object({
