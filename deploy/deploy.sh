@@ -56,10 +56,9 @@ if npx drizzle-kit migrate > "$MIGRATE_LOG" 2>&1; then
   tail -5 "$MIGRATE_LOG"
   log_ok "Migraciones aplicadas"
 else
-  log_warn "Migrate falló, intentando push..."
-  timeout 60 bash -c "CI=1 npx drizzle-kit push --force < /dev/null" > "$MIGRATE_LOG" 2>&1 || true
-  tail -5 "$MIGRATE_LOG"
-  log_ok "Schema sincronizado con push"
+  log_warn "Migrate falló, aplicando migraciones manuales..."
+  node deploy/migrate.cjs 2>&1 | tail -10
+  log_ok "Schema actualizado"
 fi
 rm -f "$MIGRATE_LOG"
 
