@@ -574,6 +574,8 @@ export default function ExercisesPage() {
   const [solutionExerciseId, setSolutionExerciseId] = useState<string | null>(null);
   const [solutionText, setSolutionText] = useState("");
   const [viewSolutionId, setViewSolutionId] = useState<string | null>(null);
+  const [editingEnunciados, setEditingEnunciados] = useState(false);
+  const [enunciadoEdits, setEnunciadoEdits] = useState<Record<number, string>>({});
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const solutionFileInputRef = useRef<HTMLInputElement>(null);
@@ -634,6 +636,32 @@ export default function ExercisesPage() {
     queryFn: () => fetch(`/api/exercises/${viewSolutionId}/solution`, { credentials: "include" }).then(r => r.json()),
     enabled: !!viewSolutionId,
   });
+
+  const saveEnunciadosMutation = useMutation({
+    mutationFn: (data: { exerciseId: string; entries: SolutionEntry[] }) =>
+      apiRequest("POST", `/api/exercises/${data.exerciseId}/solution`, { entries: data.entries }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
+      if (viewSolutionId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/exercises", viewSolutionId, "solution"] });
+      }
+      setEditingEnunciados(false);
+      setEnunciadoEdits({});
+      toast({ title: "Enunciados actualizados" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error al guardar", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleSaveEnunciados = () => {
+    if (!viewSolutionId || !solutionData?.solution) return;
+    const updatedEntries = solutionData.solution.map((entry: SolutionEntry, i: number) => ({
+      ...entry,
+      enunciado: enunciadoEdits[i] !== undefined ? enunciadoEdits[i] : (entry.enunciado || ""),
+    }));
+    saveEnunciadosMutation.mutate({ exerciseId: viewSolutionId, entries: updatedEntries });
+  };
 
   const saveSolutionMutation = useMutation({
     mutationFn: (data: { exerciseId: string; entries: SolutionEntry[] }) =>
@@ -1074,7 +1102,7 @@ export default function ExercisesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!viewSolutionId} onOpenChange={(open) => { if (!open) setViewSolutionId(null); }}>
+      <Dialog open={!!viewSolutionId} onOpenChange={(open) => { if (!open) { setViewSolutionId(null); setEditingEnunciados(false); setEnunciadoEdits({}); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Solución del ejercicio</DialogTitle>
@@ -1091,8 +1119,18 @@ export default function ExercisesPage() {
                         <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300">{entry.points} pts</Badge>
                       )}
                     </div>
-                    {entry.enunciado && (
+                    {editingEnunciados ? (
+                      <textarea
+                        className="w-full text-xs border rounded-md p-2 mt-1 mb-1 min-h-[60px] resize-y bg-background"
+                        placeholder="Escribe el enunciado que verá el alumno (ej: La empresa compra mercaderías por 5.000€ + IVA 21%...)"
+                        value={enunciadoEdits[i] !== undefined ? enunciadoEdits[i] : (entry.enunciado || "")}
+                        onChange={(e) => setEnunciadoEdits(prev => ({ ...prev, [i]: e.target.value }))}
+                        data-testid={`input-enunciado-${i}`}
+                      />
+                    ) : entry.enunciado ? (
                       <p className="text-xs text-muted-foreground mb-1 italic">{entry.enunciado}</p>
+                    ) : (
+                      <p className="text-xs text-amber-500 mb-1 italic">Sin enunciado (el alumno no verá detalles de esta operación)</p>
                     )}
                     <table className="w-full text-xs">
                       <thead>
@@ -1118,27 +1156,61 @@ export default function ExercisesPage() {
             ) : (
               <p className="text-muted-foreground text-sm">No hay solución cargada para este ejercicio.</p>
             )}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setSolutionExerciseId(viewSolutionId); setSolutionText(""); setViewSolutionId(null); }}
-                data-testid="button-replace-solution"
-              >
-                <FileUp className="w-4 h-4 mr-1.5" />
-                Reemplazar solución
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive"
-                onClick={() => viewSolutionId && deleteSolutionMutation.mutate(viewSolutionId)}
-                disabled={deleteSolutionMutation.isPending}
-                data-testid="button-delete-solution"
-              >
-                <Trash2 className="w-4 h-4 mr-1.5" />
-                Eliminar solución
-              </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {editingEnunciados ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveEnunciados}
+                    disabled={saveEnunciadosMutation.isPending}
+                    data-testid="button-save-enunciados"
+                  >
+                    {saveEnunciadosMutation.isPending ? "Guardando..." : "Guardar enunciados"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setEditingEnunciados(false); setEnunciadoEdits({}); }}
+                    data-testid="button-cancel-enunciados"
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {solutionData?.solution && solutionData.solution.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingEnunciados(true)}
+                      data-testid="button-edit-enunciados"
+                    >
+                      <FileText className="w-4 h-4 mr-1.5" />
+                      Editar enunciados
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setSolutionExerciseId(viewSolutionId); setSolutionText(""); setViewSolutionId(null); }}
+                    data-testid="button-replace-solution"
+                  >
+                    <FileUp className="w-4 h-4 mr-1.5" />
+                    Reemplazar solución
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => viewSolutionId && deleteSolutionMutation.mutate(viewSolutionId)}
+                    disabled={deleteSolutionMutation.isPending}
+                    data-testid="button-delete-solution"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1.5" />
+                    Eliminar solución
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>
