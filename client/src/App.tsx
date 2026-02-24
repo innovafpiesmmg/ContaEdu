@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
@@ -69,6 +71,7 @@ function StudentRouter() {
 
 function AuthenticatedApp() {
   const { user, loading } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
 
   if (loading) {
     return (
@@ -83,7 +86,10 @@ function AuthenticatedApp() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    if (showLogin) {
+      return <LoginPage onBack={() => setShowLogin(false)} />;
+    }
+    return <LandingPage onGoToLogin={() => setShowLogin(true)} />;
   }
 
   const style = {

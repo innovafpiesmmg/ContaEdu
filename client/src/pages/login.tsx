@@ -5,10 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Lock, User, ArrowRight } from "lucide-react";
+import { BookOpen, Lock, User, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function LoginPage() {
+interface LoginPageProps {
+  onBack?: () => void;
+}
+
+export default function LoginPage({ onBack }: LoginPageProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +52,18 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="mb-6"
+            data-testid="button-back-landing"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Volver al inicio
+          </Button>
+        )}
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0.8 }}
