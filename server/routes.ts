@@ -64,7 +64,9 @@ export async function registerRoutes(
       if (!valid) return res.status(401).json({ message: "Usuario o contraseña incorrectos" });
       req.session.userId = user.id;
       req.session.save((err: any) => {
-        if (err) return res.status(500).json({ message: "Error al guardar sesión" });
+        if (err) {
+          console.error("Session save error:", err);
+        }
         const { password: _, ...safe } = user;
         res.json(safe);
       });
