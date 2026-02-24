@@ -23,7 +23,7 @@ interface SubmissionWithStudent extends ExerciseSubmission {
 }
 
 function generateExerciseTemplate(): string {
-  return `# Ejercicio: Operaciones de compraventa con IVA
+  return `# Ejercicio 1: Operaciones de compraventa con IVA
 
 **Tipo:** practice
 
@@ -64,9 +64,7 @@ Fecha: 2024-03-20
 | 572 Bancos | 9.680,00 | |
 | 430 Clientes | | 9.680,00 |
 
----
-
-# Ejercicio: Ciclo contable de nóminas
+# Ejercicio 2: Ciclo contable de nóminas
 
 **Tipo:** guided
 
@@ -230,7 +228,7 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
 function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> {
   const exercises: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> = [];
   const cleaned = md.replace(/^\uFEFF/, "");
-  const blocks = cleaned.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
+  const blocks = cleaned.split(/(?=^\s*#\s+Ejercicio(?:\s+\d+)?:\s*)/m).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
     const titleMatch = block.match(/^\s*#\s+Ejercicio(?:\s+\d+)?:\s*(.+)$/m);
@@ -889,7 +887,7 @@ export default function ExercisesPage() {
                 data-testid="textarea-import-exercises"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Ejercicio 1: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción con las operaciones a contabilizar:\n1. Primera operación...\n2. Segunda operación...\n\n---\n\n# Ejercicio 2: Otro ejercicio\n...`}
+                placeholder={`# Ejercicio 1: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción con las operaciones a contabilizar:\n1. Primera operación...\n2. Segunda operación...\n\n## Solución\n\n### Asiento 1: Descripción\nFecha: 2024-01-15\n\n| Cuenta | Debe | Haber |\n|--------|------|-------|\n| 600 Compras | 1.000,00 | |\n| 400 Proveedores | | 1.000,00 |`}
                 className="font-mono text-xs"
                 rows={12}
               />
