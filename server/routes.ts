@@ -16,6 +16,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction) {
+    app.set("trust proxy", 1);
+  }
+
   const PgSession = connectPg(session);
   app.use(
     session({
@@ -23,7 +28,12 @@ export async function registerRoutes(
       secret: process.env.SESSION_SECRET || "contaedu-secret-key-2024",
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
+      cookie: {
+        secure: isProduction,
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      },
     })
   );
 

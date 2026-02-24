@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -72,6 +72,16 @@ function StudentRouter() {
 function AuthenticatedApp() {
   const { user, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  const wasLoggedIn = useRef(false);
+
+  useEffect(() => {
+    if (user) {
+      wasLoggedIn.current = true;
+    } else if (wasLoggedIn.current) {
+      setShowLogin(false);
+      wasLoggedIn.current = false;
+    }
+  }, [user]);
 
   if (loading) {
     return (
