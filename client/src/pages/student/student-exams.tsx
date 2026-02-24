@@ -9,10 +9,30 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { useExercise } from "@/lib/exercise-context";
 import { Clock, FileQuestion, Play, Send, AlertTriangle, CheckCircle } from "lucide-react";
-import type { Exam, ExamAttempt, ExerciseSubmission } from "@shared/schema";
-import { Star, Eye } from "lucide-react";
+import type { Exam, ExamAttempt, ExerciseSubmission, JournalEntry, JournalLine } from "@shared/schema";
+import { Star, Eye, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
+
+interface JournalEntryWithLines extends JournalEntry {
+  lines: JournalLine[];
+}
+
+interface SolutionLine {
+  accountCode: string;
+  accountName: string;
+  debit: string;
+  credit: string;
+}
+
+interface SolutionEntry {
+  entryNumber: number;
+  date: string;
+  description: string;
+  enunciado?: string;
+  lines: SolutionLine[];
+  points?: number;
+}
 
 function CountdownTimer({ startedAt, durationMinutes, onExpired }: {
   startedAt: string;
@@ -203,19 +223,35 @@ export default function StudentExamsPage() {
 }
 
 function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: string) => void; onResume: (id: string) => void }) {
+  const [showEntries, setShowEntries] = useState(false);
   const { data: attempt } = useQuery<ExamAttempt | null>({
     queryKey: [`/api/exams/${exam.id}/attempt`],
   });
   const { data: submissions } = useQuery<ExerciseSubmission[]>({
     queryKey: ["/api/submissions"],
   });
-  const [, setLocation] = useLocation();
-  const { setCurrentExerciseId } = useExercise();
+
+  const { data: studentEntries } = useQuery<JournalEntryWithLines[]>({
+    queryKey: ["/api/journal-entries", { exerciseId: exam.exerciseId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/journal-entries?exerciseId=${exam.exerciseId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error");
+      return res.json();
+    },
+    enabled: showEntries && !!exam.exerciseId,
+  });
+
+  const { data: solutionData } = useQuery<{ solution: SolutionEntry[] | null }>({
+    queryKey: ["/api/exercises", exam.exerciseId, "student-solution"],
+    queryFn: () => fetch(`/api/exercises/${exam.exerciseId}/student-solution`, { credentials: "include" }).then(r => r.json()),
+    enabled: showEntries && !!exam.exerciseId,
+  });
 
   const examSubmission = exam.exerciseId ? submissions?.find(s => s.exerciseId === exam.exerciseId) : null;
   const isReviewed = examSubmission?.status === "reviewed";
   const isSubmitted = attempt?.status === "submitted" || attempt?.status === "expired";
   const isInProgress = attempt?.status === "in_progress";
+  const solution = solutionData?.solution || [];
 
   return (
     <Card className="hover-elevate" data-testid={`student-exam-card-${exam.id}`}>
@@ -266,16 +302,11 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  if (exam.exerciseId) {
-                    setCurrentExerciseId(exam.exerciseId);
-                    setLocation("/journal");
-                  }
-                }}
+                onClick={() => setShowEntries(!showEntries)}
                 data-testid={`button-view-exam-entries-${exam.id}`}
               >
-                <Eye className="w-3.5 h-3.5 mr-1" />
-                Ver asientos
+                {showEntries ? <ChevronUp className="w-3.5 h-3.5 mr-1" /> : <Eye className="w-3.5 h-3.5 mr-1" />}
+                {showEntries ? "Ocultar" : "Ver asientos"}
               </Button>
             ) : isInProgress ? (
               <Button size="sm" onClick={() => onResume(exam.id)} data-testid={`button-resume-exam-${exam.id}`}>
@@ -308,6 +339,93 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
             )}
           </div>
         </div>
+
+        {showEntries && (isSubmitted || isReviewed) && (
+          <div className="mt-4 pt-4 border-t space-y-4">
+            <div>
+              <h4 className="text-sm font-semibold flex items-center gap-1.5 mb-2">
+                <BookOpen className="w-4 h-4" /> Tus asientos
+              </h4>
+              {studentEntries && studentEntries.length > 0 ? (
+                <div className="space-y-2">
+                  {studentEntries.map(entry => (
+                    <div key={entry.id} className="bg-muted/50 rounded-md px-3 py-2 text-sm" data-testid={`exam-student-entry-${entry.id}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary" className="font-mono text-[10px]">#{entry.entryNumber}</Badge>
+                        <span className="font-medium">{entry.description}</span>
+                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                      </div>
+                      {entry.lines && entry.lines.length > 0 && (
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-muted-foreground">
+                              <th className="text-left py-0.5">Cuenta</th>
+                              <th className="text-right py-0.5">Debe</th>
+                              <th className="text-right py-0.5">Haber</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {entry.lines.map((line: JournalLine) => (
+                              <tr key={line.id} className="border-t border-muted">
+                                <td className="py-0.5">{line.accountCode} {line.accountName}</td>
+                                <td className="text-right py-0.5 font-mono">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                                <td className="text-right py-0.5 font-mono">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No registraste asientos en este examen</p>
+              )}
+            </div>
+
+            {isReviewed && solution.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold flex items-center gap-1.5 mb-2 text-green-700 dark:text-green-400">
+                  <CheckCircle className="w-4 h-4" /> Solución correcta
+                </h4>
+                <div className="space-y-2">
+                  {solution.map((entry, i) => (
+                    <div key={i} className="bg-green-50 dark:bg-green-950/20 rounded-md px-3 py-2 text-sm border border-green-200 dark:border-green-800" data-testid={`exam-solution-entry-${i}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary" className="font-mono text-[10px]">#{entry.entryNumber}</Badge>
+                        <span className="font-medium">{entry.description}</span>
+                        {entry.points !== undefined && (
+                          <Badge variant="outline" className="text-[10px] text-green-600 border-green-300">{entry.points} pts</Badge>
+                        )}
+                      </div>
+                      {entry.enunciado && (
+                        <p className="text-xs text-muted-foreground italic mb-1">{entry.enunciado}</p>
+                      )}
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-muted-foreground">
+                            <th className="text-left py-0.5">Cuenta</th>
+                            <th className="text-right py-0.5">Debe</th>
+                            <th className="text-right py-0.5">Haber</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entry.lines.map((line, j) => (
+                            <tr key={j} className="border-t border-green-200 dark:border-green-800">
+                              <td className="py-0.5">{line.accountCode} {line.accountName}</td>
+                              <td className="text-right py-0.5 font-mono">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                              <td className="text-right py-0.5 font-mono">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
