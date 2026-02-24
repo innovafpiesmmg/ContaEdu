@@ -43,9 +43,10 @@ show_status() {
   echo ""
 
   APP_USER=$(stat -c '%U' "${APP_DIR}")
+  PM2_BIN=$(which pm2)
   echo -e "  ${BLUE}Aplicación:${NC}"
-  if sudo -u "${APP_USER}" pm2 describe "${APP_NAME}" &>/dev/null; then
-    sudo -u "${APP_USER}" pm2 status "${APP_NAME}" 2>/dev/null
+  if sudo -u "${APP_USER}" HOME="/home/${APP_USER}" ${PM2_BIN} describe "${APP_NAME}" &>/dev/null; then
+    sudo -u "${APP_USER}" HOME="/home/${APP_USER}" ${PM2_BIN} status "${APP_NAME}" 2>/dev/null
   else
     echo -e "    ${RED}No se encuentra el proceso PM2${NC}"
   fi
@@ -152,16 +153,17 @@ do_rollback() {
   fi
 
   APP_USER=$(stat -c '%U' "${APP_DIR}")
+  PM2_BIN=$(which pm2)
 
   log_info "Deteniendo aplicación..."
-  sudo -u "${APP_USER}" pm2 stop "${APP_NAME}" 2>/dev/null || true
+  sudo -u "${APP_USER}" HOME="/home/${APP_USER}" ${PM2_BIN} stop "${APP_NAME}" 2>/dev/null || true
 
   log_info "Restaurando base de datos desde $(basename "$SELECTED")..."
   gunzip -c "$SELECTED" | sudo -u postgres psql "${DB_NAME}" > /dev/null 2>&1
   log_ok "Base de datos restaurada"
 
   log_info "Reiniciando aplicación..."
-  sudo -u "${APP_USER}" pm2 start "${APP_NAME}" 2>/dev/null
+  sudo -u "${APP_USER}" HOME="/home/${APP_USER}" ${PM2_BIN} start "${APP_NAME}" 2>/dev/null
   log_ok "Aplicación reiniciada"
 
   echo ""
@@ -242,31 +244,37 @@ if [[ "$LOCAL_COMMIT" == "$REMOTE_COMMIT" ]]; then
 fi
 
 APP_USER=$(stat -c '%U' "${APP_DIR}")
-sudo -u "${APP_USER}" git reset --hard "origin/${GIT_BRANCH}"
-NEW_COMMIT=$(git log -1 --format="%h - %s")
+PM2_BIN=$(which pm2)
+
+run_as_app() {
+  sudo -u "${APP_USER}" HOME="/home/${APP_USER}" bash -c "$1"
+}
+
+run_as_app "cd ${APP_DIR} && git reset --hard origin/${GIT_BRANCH}"
+NEW_COMMIT=$(cd "${APP_DIR}" && git log -1 --format="%h - %s")
 log_ok "Código actualizado: ${NEW_COMMIT}"
 
 log_info "=== Paso 3/5: Instalando dependencias ==="
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm install --production=false 2>&1" | tail -1
+run_as_app "cd ${APP_DIR} && npm install --production=false 2>&1" | tail -1
 log_ok "Dependencias instaladas"
 
 log_info "=== Paso 4/5: Migraciones y compilación ==="
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && source .env 2>/dev/null; DATABASE_URL=\$(grep DATABASE_URL .env | cut -d= -f2-) npx drizzle-kit push --force 2>&1" | tail -3
+run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && npx drizzle-kit push --force 2>&1" | tail -3
 log_ok "Migraciones ejecutadas"
 
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm run build 2>&1" | tail -3
+run_as_app "cd ${APP_DIR} && npm run build 2>&1" | tail -3
 log_ok "Aplicación compilada"
 
 log_info "=== Paso 5/5: Reiniciando servicios ==="
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && pm2 restart ${APP_NAME} 2>/dev/null || pm2 start deploy/ecosystem.config.cjs"
+run_as_app "${PM2_BIN} restart ${APP_NAME} 2>/dev/null || (cd ${APP_DIR} && ${PM2_BIN} start deploy/ecosystem.config.cjs && ${PM2_BIN} save)"
 sleep 2
 
-if sudo -u "${APP_USER}" pm2 describe "${APP_NAME}" 2>/dev/null | grep -q "online"; then
+if run_as_app "${PM2_BIN} describe ${APP_NAME} 2>/dev/null" | grep -q "online"; then
   log_ok "Aplicación reiniciada correctamente"
 else
   log_error "La aplicación no arrancó correctamente"
   log_warn "Revisando logs..."
-  sudo -u "${APP_USER}" pm2 logs "${APP_NAME}" --lines 15 --nostream
+  run_as_app "${PM2_BIN} logs ${APP_NAME} --lines 15 --nostream"
   echo ""
   if [[ "$SKIP_BACKUP" == false ]]; then
     log_warn "Puedes restaurar el backup anterior con: sudo bash update.sh --rollback"
@@ -280,7 +288,7 @@ echo -e "${GREEN}║   Actualización completada correctamente     ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "  ${BLUE}Versión anterior:${NC} ${CURRENT_COMMIT}"
-echo -e "  ${BLUE}Versión actual:${NC}   $(git log -1 --format='%h')"
+echo -e "  ${BLUE}Versión actual:${NC}   $(cd "${APP_DIR}" && git log -1 --format='%h')"
 echo ""
-sudo -u "${APP_USER}" pm2 status "${APP_NAME}"
+run_as_app "${PM2_BIN} status"
 echo ""

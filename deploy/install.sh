@@ -184,10 +184,15 @@ log_ok "Aplicación compilada"
 
 log_info "=== Paso 9/9: Configurando servicios ==="
 
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && pm2 delete ${APP_NAME} 2>/dev/null; pm2 start deploy/ecosystem.config.cjs && pm2 save"
+PM2_BIN=$(which pm2)
+run_as_app() {
+  sudo -u "${APP_USER}" HOME="/home/${APP_USER}" bash -c "$1"
+}
+
+run_as_app "cd ${APP_DIR} && ${PM2_BIN} delete ${APP_NAME} 2>/dev/null; ${PM2_BIN} start deploy/ecosystem.config.cjs && ${PM2_BIN} save"
 log_ok "PM2 configurado"
 
-PM2_STARTUP=$(sudo -u "${APP_USER}" pm2 startup systemd -u "${APP_USER}" --hp "/home/${APP_USER}" 2>&1 | grep "sudo" | head -1)
+PM2_STARTUP=$(run_as_app "${PM2_BIN} startup systemd -u ${APP_USER} --hp /home/${APP_USER}" 2>&1 | grep "sudo" | head -1)
 if [[ -n "$PM2_STARTUP" ]]; then
   eval "$PM2_STARTUP" > /dev/null 2>&1
   log_ok "PM2 auto-inicio configurado"
