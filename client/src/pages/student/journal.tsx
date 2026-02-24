@@ -110,6 +110,7 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
 
   const linkedExam = exams?.find(exam => exam.exerciseId === exerciseId && exam.isActive);
   const tasks = tasksData?.tasks || [];
+  const hasEnunciados = tasks.some(t => t.enunciado);
 
   if (!exercise) return null;
 
@@ -121,9 +122,11 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             {linkedExam.title}
           </h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.description}</p>
+          {!hasEnunciados && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.description}</p>
+          )}
           {linkedExam.instructions && (
-            <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700">
+            <div className={hasEnunciados ? "" : "mt-2 pt-2 border-t border-amber-200 dark:border-amber-700"}>
               <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Instrucciones:</p>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.instructions}</p>
             </div>
@@ -131,10 +134,16 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
         </div>
       )}
 
-      <div>
-        <h4 className="text-sm font-semibold mb-1">{exercise.title}</h4>
-        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{exercise.description}</p>
-      </div>
+      {!linkedExam && !hasEnunciados && (
+        <div>
+          <h4 className="text-sm font-semibold mb-1">{exercise.title}</h4>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{exercise.description}</p>
+        </div>
+      )}
+
+      {!linkedExam && hasEnunciados && (
+        <h4 className="text-sm font-semibold">{exercise.title}</h4>
+      )}
 
       {tasks.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
