@@ -1,0 +1,74 @@
+root@contaedu:~# git config --global --add safe.directory /var/www/contaedu
+sudo bash /var/www/contaedu/deploy/update.sh
+
+╔══════════════════════════════════════════════╗
+║   ContaEdu — Actualización                   ║
+╚══════════════════════════════════════════════╝
+
+[INFO] Versión actual: 04898cb
+[INFO] === Paso 1/5: Backup de la base de datos ===
+[OK] Backup creado: contaedu_db_20260224_122438.sql.gz (4.0K)
+[INFO] === Paso 2/5: Descargando cambios desde GitHub ===
+remote: Enumerating objects: 22, done.
+remote: Counting objects: 100% (22/22), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 13 (delta 11), reused 12 (delta 10), pack-reused 0 (from 0)
+Unpacking objects: 100% (13/13), 12.58 KiB | 189.00 KiB/s, done.
+From https://github.com/innovafpiesmmg/ContaEdu
+   04898cb..acee10f  main       -> origin/main
+HEAD is now at acee10f Add safety to Git commands during installation and updates
+[OK] Código actualizado: acee10f - Add safety to Git commands during installation and updates
+[INFO] === Paso 3/5: Instalando dependencias ===
+Run `npm audit` for details.
+[OK] Dependencias instaladas
+[INFO] === Paso 4/5: Migraciones y compilación ===
+[⣟] Pulling schema from database...
+[✓] Pulling schema from database...
+[i] No changes detected
+[OK] Migraciones ejecutadas
+  dist/index.cjs  1.1mb ⚠️
+
+⚡ Done in 170ms
+[OK] Aplicación compilada
+[INFO] === Paso 5/5: Reiniciando servicios ===
+
+                        -------------
+
+__/\\\\\\\\\\\\\____/\\\\____________/\\\\____/\\\\\\\\\_____
+ _\/\\\/////////\\\_\/\\\\\\________/\\\\\\__/\\\///////\\\___
+  _\/\\\_______\/\\\_\/\\\//\\\____/\\\//\\\_\///______\//\\\__
+   _\/\\\\\\\\\\\\\/__\/\\\\///\\\/\\\/_\/\\\___________/\\\/___
+    _\/\\\/////////____\/\\\__\///\\\/___\/\\\________/\\\//_____
+     _\/\\\_____________\/\\\____\///_____\/\\\_____/\\\//________
+      _\/\\\_____________\/\\\_____________\/\\\___/\\\/___________
+       _\/\\\_____________\/\\\_____________\/\\\__/\\\\\\\\\\\\\\\_
+        _\///______________\///______________\///__\///////////////__
+
+
+                          Runtime Edition
+
+        PM2 is a Production Process Manager for Node.js applications
+                     with a built-in Load Balancer.
+
+                Start and Daemonize any application:
+                $ pm2 start app.js
+
+                Load Balance 4 instances of api.js:
+                $ pm2 start api.js -i 4
+
+                Monitor in production:
+                $ pm2 monitor
+
+                Make pm2 auto-boot at server restart:
+                $ pm2 startup
+
+                To go further checkout:
+                http://pm2.io/
+
+
+                        -------------
+
+[PM2] Spawning PM2 daemon with pm2_home=/root/.pm2
+[PM2] PM2 Successfully daemonized
+Use --update-env to update environment variables
+[PM2][ERROR] Process or

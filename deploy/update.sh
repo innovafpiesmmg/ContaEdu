@@ -42,12 +42,10 @@ show_status() {
   echo -e "${BLUE}╚══════════════════════════════════════════════╝${NC}"
   echo ""
 
+  APP_USER=$(stat -c '%U' "${APP_DIR}")
   echo -e "  ${BLUE}Aplicación:${NC}"
-  if pm2 describe "${APP_NAME}" &>/dev/null; then
-    STATUS=$(pm2 jq "${APP_NAME}" 2>/dev/null | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4 2>/dev/null || echo "desconocido")
-    UPTIME=$(pm2 describe "${APP_NAME}" 2>/dev/null | grep "uptime" | awk '{print $4}' || echo "-")
-    RESTARTS=$(pm2 describe "${APP_NAME}" 2>/dev/null | grep "restarts" | awk '{print $4}' || echo "-")
-    pm2 status "${APP_NAME}" 2>/dev/null
+  if sudo -u "${APP_USER}" pm2 describe "${APP_NAME}" &>/dev/null; then
+    sudo -u "${APP_USER}" pm2 status "${APP_NAME}" 2>/dev/null
   else
     echo -e "    ${RED}No se encuentra el proceso PM2${NC}"
   fi
@@ -153,15 +151,17 @@ do_rollback() {
     exit 0
   fi
 
+  APP_USER=$(stat -c '%U' "${APP_DIR}")
+
   log_info "Deteniendo aplicación..."
-  pm2 stop "${APP_NAME}" 2>/dev/null || true
+  sudo -u "${APP_USER}" pm2 stop "${APP_NAME}" 2>/dev/null || true
 
   log_info "Restaurando base de datos desde $(basename "$SELECTED")..."
   gunzip -c "$SELECTED" | sudo -u postgres psql "${DB_NAME}" > /dev/null 2>&1
   log_ok "Base de datos restaurada"
 
   log_info "Reiniciando aplicación..."
-  pm2 start "${APP_NAME}" 2>/dev/null
+  sudo -u "${APP_USER}" pm2 start "${APP_NAME}" 2>/dev/null
   log_ok "Aplicación reiniciada"
 
   echo ""
@@ -258,15 +258,15 @@ sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm run build 2>&1" | tail -3
 log_ok "Aplicación compilada"
 
 log_info "=== Paso 5/5: Reiniciando servicios ==="
-pm2 restart "${APP_NAME}"
+sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && pm2 restart ${APP_NAME} 2>/dev/null || pm2 start deploy/ecosystem.config.cjs"
 sleep 2
 
-if pm2 describe "${APP_NAME}" 2>/dev/null | grep -q "online"; then
+if sudo -u "${APP_USER}" pm2 describe "${APP_NAME}" 2>/dev/null | grep -q "online"; then
   log_ok "Aplicación reiniciada correctamente"
 else
   log_error "La aplicación no arrancó correctamente"
   log_warn "Revisando logs..."
-  pm2 logs "${APP_NAME}" --lines 15 --nostream
+  sudo -u "${APP_USER}" pm2 logs "${APP_NAME}" --lines 15 --nostream
   echo ""
   if [[ "$SKIP_BACKUP" == false ]]; then
     log_warn "Puedes restaurar el backup anterior con: sudo bash update.sh --rollback"
@@ -282,5 +282,5 @@ echo ""
 echo -e "  ${BLUE}Versión anterior:${NC} ${CURRENT_COMMIT}"
 echo -e "  ${BLUE}Versión actual:${NC}   $(git log -1 --format='%h')"
 echo ""
-pm2 status "${APP_NAME}"
+sudo -u "${APP_USER}" pm2 status "${APP_NAME}"
 echo ""
