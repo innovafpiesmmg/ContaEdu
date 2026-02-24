@@ -110,7 +110,9 @@ Instructions for students...
 
 ## Running
 - `npm run dev` starts both frontend and backend on port 5000
-- `npm run db:push` syncs database schema
+- `npm run db:push` syncs database schema (development)
+- `npx drizzle-kit generate` generates migration files from schema changes
+- `npx drizzle-kit migrate` applies migrations (production/CI, non-interactive)
 - `npx tsx scripts/change-admin-password.ts <password>` changes admin password
 
 ## Language
