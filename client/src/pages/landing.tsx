@@ -358,8 +358,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             </div>
             <span className="text-sm font-medium">ContaEdu</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Simulador Contable Educativo — CFGM / CFGS Formación Profesional
+          <p className="text-xs text-muted-foreground text-center sm:text-right">
+            Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González
           </p>
         </div>
       </footer>
