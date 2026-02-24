@@ -46,7 +46,7 @@ export default function CoursesPage() {
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
-    toast({ title: "Codigo copiado al portapapeles" });
+    toast({ title: "Código copiado al portapapeles" });
   };
 
   return (
@@ -74,23 +74,23 @@ export default function CoursesPage() {
                   data-testid="input-course-name"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="1o CFGM Gestion Administrativa"
+                  placeholder="1º CFGM Gestión Administrativa"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Descripcion</Label>
+                <Label>Descripción</Label>
                 <Textarea
                   data-testid="input-course-description"
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
-                  placeholder="Descripcion del curso..."
+                  placeholder="Descripción del curso..."
                 />
               </div>
               <div className="space-y-2">
-                <Label>Ano Escolar</Label>
+                <Label>Año Escolar</Label>
                 <Select value={form.schoolYearId} onValueChange={v => setForm({ ...form, schoolYearId: v })}>
                   <SelectTrigger data-testid="select-year">
-                    <SelectValue placeholder="Seleccionar ano..." />
+                    <SelectValue placeholder="Seleccionar año..." />
                   </SelectTrigger>
                   <SelectContent>
                     {years?.map(y => (

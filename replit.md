@@ -85,7 +85,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 
 **Tipo:** practice|guided
 
-## Descripcion
+## Descripción
 Exercise description text...
 
 ---
@@ -96,10 +96,10 @@ Exercise description text...
 ```md
 # Examen: Title
 
-**Duracion:** 60
+**Duración:** 60
 **Ejercicio:** Exercise title to link
 
-## Descripcion
+## Descripción
 Exam description...
 
 ## Instrucciones

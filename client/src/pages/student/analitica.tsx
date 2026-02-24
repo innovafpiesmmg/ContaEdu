@@ -136,11 +136,11 @@ export default function AnaliticaPage() {
                 </ul>
               </div>
               <div className="bg-chart-4/5 border border-chart-4/20 rounded-lg p-4">
-                <h4 className="font-semibold text-sm mb-2">Contabilidad Analitica</h4>
+                <h4 className="font-semibold text-sm mb-2">Contabilidad Analítica</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>Voluntaria (gestion interna)</li>
+                  <li>Voluntaria (gestión interna)</li>
                   <li>Analiza costes internos</li>
-                  <li>Orientada a la direccion</li>
+                  <li>Orientada a la dirección</li>
                   <li>No sigue normas fijas</li>
                 </ul>
               </div>
@@ -152,19 +152,19 @@ export default function AnaliticaPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <PieChart className="w-5 h-5 text-primary" />
-              <CardTitle className="text-lg">B. Clasificacion de Costes</CardTitle>
+              <CardTitle className="text-lg">B. Clasificación de Costes</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-semibold text-sm mb-3">Segun su relacion con la produccion</h4>
+              <h4 className="font-semibold text-sm mb-3">Según su relación con la producción</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-chart-2/5 border border-chart-2/20 rounded-lg p-4">
                   <h5 className="font-semibold text-sm mb-1 flex items-center gap-1.5">
                     <Badge variant="default" className="bg-chart-2">Costes Fijos</Badge>
                   </h5>
                   <p className="text-sm text-muted-foreground mb-2">
-                    No varian con el nivel de produccion.
+                    No varían con el nivel de producción.
                   </p>
                   <p className="text-xs text-muted-foreground italic">
                     Alquiler, seguros, sueldos fijos, amortizaciones
@@ -175,10 +175,10 @@ export default function AnaliticaPage() {
                     <Badge variant="default" className="bg-chart-5">Costes Variables</Badge>
                   </h5>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Aumentan o disminuyen con la produccion.
+                    Aumentan o disminuyen con la producción.
                   </p>
                   <p className="text-xs text-muted-foreground italic">
-                    Materias primas, mano de obra directa, energia
+                    Materias primas, mano de obra directa, energía
                   </p>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export default function AnaliticaPage() {
             <Separator />
 
             <div>
-              <h4 className="font-semibold text-sm mb-3">Segun su imputacion al producto</h4>
+              <h4 className="font-semibold text-sm mb-3">Según su imputación al producto</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <h5 className="font-semibold text-sm mb-1">Costes Directos</h5>
@@ -204,7 +204,7 @@ export default function AnaliticaPage() {
                     Se deben repartir usando criterios de reparto (claves).
                   </p>
                   <p className="text-xs text-muted-foreground italic">
-                    Alquiler, supervision, mantenimiento general
+                    Alquiler, supervisión, mantenimiento general
                   </p>
                 </div>
               </div>
@@ -222,15 +222,15 @@ export default function AnaliticaPage() {
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
               Un <strong className="text-foreground">centro de coste</strong> es una unidad organizativa de la empresa
-              a la que se asignan costes para su control y analisis. Permite identificar donde se generan los costes
+              a la que se asignan costes para su control y análisis. Permite identificar dónde se generan los costes
               y facilita la toma de decisiones.
             </p>
             <div className="space-y-2">
               {[
                 { name: "Aprovisionamiento", desc: "Compras de materiales y almacenamiento", icon: "1" },
-                { name: "Produccion / Fabricacion", desc: "Transformacion de materias primas en producto", icon: "2" },
-                { name: "Distribucion / Comercial", desc: "Ventas, marketing, logistica de envios", icon: "3" },
-                { name: "Administracion", desc: "Gestion general, contabilidad, RRHH", icon: "4" },
+                { name: "Producción / Fabricación", desc: "Transformación de materias primas en producto", icon: "2" },
+                { name: "Distribución / Comercial", desc: "Ventas, marketing, logística de envíos", icon: "3" },
+                { name: "Administración", desc: "Gestión general, contabilidad, RRHH", icon: "4" },
               ].map(c => (
                 <div key={c.name} className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors">
                   <span className="w-8 h-8 flex items-center justify-center rounded-md bg-primary/10 text-primary font-bold text-sm shrink-0">

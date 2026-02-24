@@ -100,11 +100,11 @@ export default function AccountsPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Anadir Cuenta al PGC</DialogTitle>
+                <DialogTitle>Añadir Cuenta al PGC</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Codigo de Cuenta</Label>
+                  <Label>Código de Cuenta</Label>
                   <Input
                     data-testid="input-account-code"
                     value={form.code}
@@ -113,7 +113,7 @@ export default function AccountsPage() {
                     className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Introduce un codigo numerico siguiendo la estructura del PGC
+                    Introduce un código numérico siguiendo la estructura del PGC
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -146,7 +146,7 @@ export default function AccountsPage() {
                   onClick={() => createMutation.mutate()}
                   disabled={!form.code || !form.name || !form.accountType || createMutation.isPending}
                 >
-                  {createMutation.isPending ? "Creando..." : "Anadir Cuenta"}
+                  {createMutation.isPending ? "Creando..." : "Añadir Cuenta"}
                 </Button>
               </div>
             </DialogContent>
@@ -158,7 +158,7 @@ export default function AccountsPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           data-testid="input-search-accounts"
-          placeholder="Buscar por codigo o nombre..."
+          placeholder="Buscar por código o nombre..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="pl-10"

@@ -25,9 +25,9 @@ function generateExerciseTemplate(): string {
 
 **Tipo:** practice
 
-## Descripcion
-Registrar la compra de mercaderias por valor de 1.000 EUR mas IVA del 21%.
-La empresa CompraFacil S.L. adquiere mercaderias a un proveedor.
+## Descripción
+Registrar la compra de mercaderías por valor de 1.000 EUR más IVA del 21%.
+La empresa CompraFácil S.L. adquiere mercaderías a un proveedor.
 
 ---
 
@@ -35,18 +35,18 @@ La empresa CompraFacil S.L. adquiere mercaderias a un proveedor.
 
 **Tipo:** guided
 
-## Descripcion
-Registrar la venta de servicios de consultoria por 2.500 EUR mas IVA del 21%.
+## Descripción
+Registrar la venta de servicios de consultoría por 2.500 EUR más IVA del 21%.
 El cliente paga mediante transferencia bancaria.
 
 ---
 
-# Ejercicio: Nomina del mes
+# Ejercicio: Nómina del mes
 
 **Tipo:** practice
 
-## Descripcion
-Contabilizar la nomina del mes de enero:
+## Descripción
+Contabilizar la nómina del mes de enero:
 - Sueldo bruto: 2.000 EUR
 - Seguridad Social trabajador: 127 EUR
 - IRPF: 300 EUR
@@ -61,7 +61,7 @@ function parseExercisesMD(md: string): Array<{ title: string; description: strin
   for (const block of blocks) {
     const titleMatch = block.match(/^#\s+Ejercicio:\s*(.+)$/m);
     const typeMatch = block.match(/\*\*Tipo:\*\*\s*(practice|guided)/i);
-    const descMatch = block.match(/##\s+Descripcion\s*\n([\s\S]*?)$/i);
+    const descMatch = block.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)$/i);
 
     if (titleMatch) {
       exercises.push({
@@ -214,7 +214,7 @@ export default function ExercisesPage() {
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Titulo</Label>
+                  <Label>Título</Label>
                   <Input
                     data-testid="input-exercise-title"
                     value={form.title}
@@ -223,7 +223,7 @@ export default function ExercisesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Descripcion</Label>
+                  <Label>Descripción</Label>
                   <Textarea
                     data-testid="input-exercise-description"
                     value={form.description}
@@ -436,7 +436,7 @@ export default function ExercisesPage() {
                 data-testid="textarea-import-exercises"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Ejercicio: Titulo del ejercicio\n\n**Tipo:** practice\n\n## Descripcion\nDescripcion del ejercicio...\n\n---\n\n# Ejercicio: Otro ejercicio\n...`}
+                placeholder={`# Ejercicio: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción del ejercicio...\n\n---\n\n# Ejercicio: Otro ejercicio\n...`}
                 className="font-mono text-xs"
                 rows={12}
               />

@@ -154,7 +154,7 @@ export default function StudentExercisesPage() {
                         )}
                         {isSubmitted && (
                           <p className="text-xs text-muted-foreground">
-                            Entregado el {sub?.submittedAt ? new Date(sub.submittedAt).toLocaleDateString("es-ES") : ""}. Pendiente de correccion.
+                            Entregado el {sub?.submittedAt ? new Date(sub.submittedAt).toLocaleDateString("es-ES") : ""}. Pendiente de corrección.
                           </p>
                         )}
                       </div>

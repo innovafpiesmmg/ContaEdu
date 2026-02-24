@@ -90,13 +90,13 @@ export default function StudentsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Contrasena</Label>
+                <Label>Contraseña</Label>
                 <Input
                   data-testid="input-student-password"
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
-                  placeholder="Minimo 6 caracteres"
+                  placeholder="Mínimo 6 caracteres"
                 />
               </div>
               <div className="space-y-2">
@@ -201,7 +201,7 @@ export default function StudentsPage() {
               {filterCourseId !== "all" ? "No hay alumnos en este curso" : "No hay alumnos matriculados"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {filterCourseId !== "all" ? "Los alumnos se pueden matricular usando el codigo de matriculacion del curso" : "Crea tu primer alumno para empezar"}
+              {filterCourseId !== "all" ? "Los alumnos se pueden matricular usando el código de matriculación del curso" : "Crea tu primer alumno para empezar"}
             </p>
           </CardContent>
         </Card>

@@ -167,7 +167,7 @@ export default function StudentExamsPage() {
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Examenes</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Exámenes</h1>
         <p className="text-muted-foreground text-sm mt-1">Evaluaciones disponibles</p>
       </div>
 
@@ -193,7 +193,7 @@ export default function StudentExamsPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <FileQuestion className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No hay examenes disponibles</p>
+            <p className="text-muted-foreground">No hay exámenes disponibles</p>
           </CardContent>
         </Card>
       )}

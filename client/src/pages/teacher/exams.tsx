@@ -18,31 +18,31 @@ import { motion } from "framer-motion";
 function generateExamTemplate(): string {
   return `# Examen: Examen Tema 3 - Compras y Ventas
 
-**Duracion:** 60
-**Ejercicio:** (titulo del ejercicio base)
+**Duración:** 60
+**Ejercicio:** (título del ejercicio base)
 
-## Descripcion
-Examen practico sobre los asientos de compras y ventas con IVA.
-El alumno debera registrar correctamente los asientos contables.
+## Descripción
+Examen práctico sobre los asientos de compras y ventas con IVA.
+El alumno deberá registrar correctamente los asientos contables.
 
 ## Instrucciones
 - Tipo de IVA aplicable: 21%
-- Todas las operaciones se realizan a credito
+- Todas las operaciones se realizan a crédito
 - Utilizar las cuentas del PGC
 
 ---
 
-# Examen: Control Tema 5 - Nominas
+# Examen: Control Tema 5 - Nóminas
 
-**Duracion:** 45
-**Ejercicio:** (titulo del ejercicio base)
+**Duración:** 45
+**Ejercicio:** (título del ejercicio base)
 
-## Descripcion
-Control practico sobre la contabilizacion de nominas y seguros sociales.
+## Descripción
+Control práctico sobre la contabilización de nóminas y seguros sociales.
 
 ## Instrucciones
-- Revisar los porcentajes de retencion indicados en cada enunciado
-- Contabilizar tanto el devengo como el pago de la nomina
+- Revisar los porcentajes de retención indicados en cada enunciado
+- Contabilizar tanto el devengo como el pago de la nómina
 `;
 }
 
@@ -60,9 +60,9 @@ function parseExamsMD(md: string): ParsedExam[] {
 
   for (const block of blocks) {
     const titleMatch = block.match(/^#\s+Examen:\s*(.+)$/m);
-    const durationMatch = block.match(/\*\*Duracion:\*\*\s*(\d+)/i);
+    const durationMatch = block.match(/\*\*Duraci[oó]n:\*\*\s*(\d+)/i);
     const exerciseMatch = block.match(/\*\*Ejercicio:\*\*\s*(.+)$/mi);
-    const descMatch = block.match(/##\s+Descripcion\s*\n([\s\S]*?)(?=##|\z)/i);
+    const descMatch = block.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)(?=##|\z)/i);
     const instrMatch = block.match(/##\s+Instrucciones\s*\n([\s\S]*?)$/i);
 
     if (titleMatch) {
@@ -171,7 +171,7 @@ export default function TeacherExamsPage() {
       setImportOpen(false);
       setImportText("");
       setImportCourseId("");
-      toast({ title: "Examenes importados correctamente" });
+      toast({ title: "Exámenes importados correctamente" });
     },
     onError: (err: Error) => {
       toast({ title: "Error al importar", description: err.message, variant: "destructive" });
@@ -185,7 +185,7 @@ export default function TeacherExamsPage() {
   const handleImport = () => {
     const parsed = parseExamsMD(importText);
     if (parsed.length === 0) {
-      toast({ title: "Error", description: "No se encontraron examenes validos en el texto", variant: "destructive" });
+      toast({ title: "Error", description: "No se encontraron exámenes válidos en el texto", variant: "destructive" });
       return;
     }
     if (!importCourseId) {
@@ -212,7 +212,7 @@ export default function TeacherExamsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "plantilla_examenes.md";
+    a.download = "plantilla_exámenes.md";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -223,8 +223,8 @@ export default function TeacherExamsPage() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Examenes</h1>
-          <p className="text-muted-foreground text-sm mt-1">Evaluaciones con limite de tiempo</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Exámenes</h1>
+          <p className="text-muted-foreground text-sm mt-1">Evaluaciones con límite de tiempo</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="button-import-exams">
@@ -244,7 +244,7 @@ export default function TeacherExamsPage() {
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Titulo</Label>
+                  <Label>Título</Label>
                   <Input
                     data-testid="input-exam-title"
                     value={form.title}
@@ -253,7 +253,7 @@ export default function TeacherExamsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Descripcion</Label>
+                  <Label>Descripción</Label>
                   <Textarea
                     data-testid="input-exam-description"
                     value={form.description}
@@ -287,7 +287,7 @@ export default function TeacherExamsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Duracion (min)</Label>
+                    <Label>Duración (min)</Label>
                     <Input
                       data-testid="input-exam-duration"
                       type="number"
@@ -429,7 +429,7 @@ export default function TeacherExamsPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <FileQuestion className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No hay examenes creados</p>
+            <p className="text-muted-foreground">No hay exámenes creados</p>
             <p className="text-xs text-muted-foreground mt-1">Crea un examen o importa desde un archivo MD</p>
           </CardContent>
         </Card>
@@ -438,7 +438,7 @@ export default function TeacherExamsPage() {
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Importar Examenes desde Markdown</DialogTitle>
+            <DialogTitle>Importar Exámenes desde Markdown</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="flex items-center gap-2">
@@ -486,7 +486,7 @@ export default function TeacherExamsPage() {
                 data-testid="textarea-import-exams"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Examen: Titulo del examen\n\n**Duracion:** 60\n**Ejercicio:** Titulo del ejercicio base\n\n## Descripcion\nDescripcion del examen...\n\n## Instrucciones\nInstrucciones para el alumno...\n\n---\n\n# Examen: Otro examen\n...`}
+                placeholder={`# Examen: Título del examen\n\n**Duración:** 60\n**Ejercicio:** Título del ejercicio base\n\n## Descripción\nDescripción del examen...\n\n## Instrucciones\nInstrucciones para el alumno...\n\n---\n\n# Examen: Otro examen\n...`}
                 className="font-mono text-xs"
                 rows={12}
               />

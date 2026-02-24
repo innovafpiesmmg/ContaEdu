@@ -448,7 +448,7 @@ export async function registerRoutes(
       }
       const existing = await storage.getAccountsForUser(req.user.id);
       if (existing.find(a => a.code === code)) {
-        return res.status(400).json({ message: `Ya existe una cuenta con el codigo ${code}` });
+        return res.status(400).json({ message: `Ya existe una cuenta con el código ${code}` });
       }
       const account = await storage.createAccount({
         code,

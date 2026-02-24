@@ -54,14 +54,14 @@ export function AppSidebar() {
     { title: "Mis Cursos", url: "/courses", icon: GraduationCap },
     { title: "Alumnos", url: "/students", icon: Users },
     { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
-    { title: "Examenes", url: "/exams", icon: FileQuestion },
+    { title: "Exámenes", url: "/exams", icon: FileQuestion },
     { title: "Mi Perfil", url: "/profile", icon: UserCog },
   ];
 
   const studentItems = [
     { title: "Mi Escritorio", url: "/", icon: LayoutDashboard },
     { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
-    { title: "Examenes", url: "/exams", icon: FileQuestion },
+    { title: "Exámenes", url: "/exams", icon: FileQuestion },
     { title: "Libro Diario", url: "/journal", icon: BookOpenCheck },
     { title: "Libro Mayor", url: "/ledger", icon: FileText },
     { title: "Balances", url: "/balances", icon: BarChart3 },
