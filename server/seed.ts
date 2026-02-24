@@ -145,27 +145,28 @@ export async function seedDatabase() {
       });
     }
 
-    await storage.createExercise({
+    const ex1 = await storage.createExercise({
       title: "Asiento de apertura",
       description: "Registra el asiento de apertura de una empresa con los siguientes datos: Capital social 50.000€, Bancos 30.000€, Mobiliario 15.000€, Equipos informáticos 5.000€.",
       exerciseType: "guided",
-      courseId: course1.id,
       teacherId: teacher.id,
     });
-    await storage.createExercise({
+    const ex2 = await storage.createExercise({
       title: "Compra de mercaderías con IVA",
       description: "La empresa ALFA, S.L. compra mercaderías por valor de 10.000€ + 21% IVA. El pago se realiza a 30 días. Registra el asiento correspondiente.",
       exerciseType: "practice",
-      courseId: course1.id,
       teacherId: teacher.id,
     });
-    await storage.createExercise({
+    const ex3 = await storage.createExercise({
       title: "Venta de mercaderías",
       description: "Registra una venta de mercaderías por 8.000€ + 21% IVA. El cliente paga el 50% al contado por transferencia y el resto queda pendiente.",
       exerciseType: "practice",
-      courseId: course1.id,
       teacherId: teacher.id,
     });
+
+    await storage.assignExerciseToCourse(course1.id, ex1.id);
+    await storage.assignExerciseToCourse(course1.id, ex2.id);
+    await storage.assignExerciseToCourse(course1.id, ex3.id);
 
     console.log("Database seeded successfully");
   } catch (err) {

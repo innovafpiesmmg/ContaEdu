@@ -56,9 +56,15 @@ export const exercises = pgTable("exercises", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   exerciseType: exerciseTypeEnum("exercise_type").notNull().default("practice"),
-  courseId: varchar("course_id").notNull(),
+  courseId: varchar("course_id"),
   teacherId: varchar("teacher_id").notNull(),
   solution: text("solution"),
+});
+
+export const courseExercises = pgTable("course_exercises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull(),
+  exerciseId: varchar("exercise_id").notNull(),
 });
 
 export const journalEntries = pgTable("journal_entries", {
@@ -142,6 +148,7 @@ export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit(
 export const insertJournalLineSchema = createInsertSchema(journalLines).omit({ id: true });
 export const insertExamSchema = createInsertSchema(exams).omit({ id: true });
 export const insertExamAttemptSchema = createInsertSchema(examAttempts).omit({ id: true });
+export const insertCourseExerciseSchema = createInsertSchema(courseExercises).omit({ id: true });
 export const insertExerciseSubmissionSchema = createInsertSchema(exerciseSubmissions).omit({ id: true });
 export const insertMailConfigSchema = createInsertSchema(mailConfig).omit({ id: true });
 export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true });
@@ -166,6 +173,8 @@ export type Exam = typeof exams.$inferSelect;
 export type InsertExam = z.infer<typeof insertExamSchema>;
 export type ExamAttempt = typeof examAttempts.$inferSelect;
 export type InsertExamAttempt = z.infer<typeof insertExamAttemptSchema>;
+export type CourseExercise = typeof courseExercises.$inferSelect;
+export type InsertCourseExercise = z.infer<typeof insertCourseExerciseSchema>;
 export type ExerciseSubmission = typeof exerciseSubmissions.$inferSelect;
 export type InsertExerciseSubmission = z.infer<typeof insertExerciseSubmissionSchema>;
 export type MailConfig = typeof mailConfig.$inferSelect;

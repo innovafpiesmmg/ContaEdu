@@ -50,7 +50,10 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `GET/POST /api/users/students` - Student management
 - `GET/POST /api/courses` - Course management
 - `GET/POST /api/accounts` - Chart of accounts (PGC)
-- `GET/POST /api/exercises` - Exercise management
+- `GET/POST /api/exercises` - Exercise management (shared repository, all teachers see all)
+- `GET /api/exercises/:id/courses` - Get assigned course IDs for exercise
+- `POST /api/exercises/:id/assign` - Assign exercise to course
+- `POST /api/exercises/:id/unassign` - Unassign exercise from course
 - `GET/POST /api/journal-entries` - Journal entries
 - `GET /api/ledger` - Ledger (Libro Mayor)
 - `GET /api/trial-balance` - Trial balance
@@ -72,6 +75,13 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - Password recovery via email requires SMTP configuration in admin panel (Configuración > Servidor de Correo)
 - Password reset tokens expire after 2 hours and are single-use
 - Users need an email address registered to use password recovery
+
+## Shared Exercise Repository
+- Exercises are a shared library accessible by all teachers
+- Exercises are NOT tied to a specific course; they use a junction table (`course_exercises`) for course assignment
+- Teachers can assign any exercise to any of their courses using the link icon in the exercise card
+- Students see only exercises assigned to their course via `course_exercises`
+- Each exercise tracks its creator via `teacherId` for attribution
 
 ## Exercise Submission Flow
 1. Student works on exercise (journal entries)

@@ -76,9 +76,16 @@ export async function runAutoMigrations() {
       title text NOT NULL,
       description text NOT NULL,
       exercise_type exercise_type NOT NULL DEFAULT 'practice',
-      course_id varchar NOT NULL,
+      course_id varchar,
       teacher_id varchar NOT NULL,
       solution text
+    )`);
+
+    await client.query(`CREATE TABLE IF NOT EXISTS course_exercises (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      course_id varchar NOT NULL,
+      exercise_id varchar NOT NULL,
+      UNIQUE(course_id, exercise_id)
     )`);
 
     await client.query(`CREATE TABLE IF NOT EXISTS journal_entries (
@@ -158,6 +165,21 @@ export async function runAutoMigrations() {
     await addColumnIfNotExists(client, "journal_entries", "exercise_id", "varchar");
     await addColumnIfNotExists(client, "accounts", "user_id", "varchar");
     await addColumnIfNotExists(client, "exercises", "solution", "text");
+
+    // Make exercises.course_id nullable (for shared repository)
+    await client.query(`ALTER TABLE exercises ALTER COLUMN course_id DROP NOT NULL`).catch(() => {});
+
+    // Backfill course_exercises from existing exercises that have course_id
+    await client.query(`
+      INSERT INTO course_exercises (id, course_id, exercise_id)
+      SELECT gen_random_uuid(), e.course_id, e.id
+      FROM exercises e
+      WHERE e.course_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM course_exercises ce
+        WHERE ce.course_id = e.course_id AND ce.exercise_id = e.id
+      )
+    `).catch(() => {});
 
     console.log("[auto-migrate] Schema verificado correctamente");
   } catch (err: any) {

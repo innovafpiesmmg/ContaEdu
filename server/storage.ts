@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import {
-  users, schoolYears, systemConfig, courses, accounts, exercises,
+  users, schoolYears, systemConfig, courses, accounts, exercises, courseExercises,
   journalEntries, journalLines, exams, examAttempts, exerciseSubmissions,
   mailConfig, passwordResetTokens,
   type User, type InsertUser,
@@ -14,6 +14,7 @@ import {
   type JournalLine, type InsertJournalLine,
   type Exam, type InsertExam,
   type ExamAttempt, type InsertExamAttempt,
+  type CourseExercise, type InsertCourseExercise,
   type ExerciseSubmission, type InsertExerciseSubmission,
   type MailConfig, type InsertMailConfig,
   type PasswordResetToken, type InsertPasswordResetToken,
@@ -60,9 +61,16 @@ export interface IStorage {
   getExercises(): Promise<Exercise[]>;
   getExercisesByTeacher(teacherId: string): Promise<Exercise[]>;
   getExercisesByCourse(courseId: string): Promise<Exercise[]>;
+  getExercisesForCourse(courseId: string): Promise<Exercise[]>;
   createExercise(exercise: InsertExercise): Promise<Exercise>;
   deleteExercise(id: string): Promise<void>;
   updateExerciseSolution(id: string, solution: string | null): Promise<Exercise>;
+
+  getCourseExercises(courseId: string): Promise<CourseExercise[]>;
+  assignExerciseToCourse(courseId: string, exerciseId: string): Promise<CourseExercise>;
+  unassignExerciseFromCourse(courseId: string, exerciseId: string): Promise<void>;
+  getAssignedCourseIds(exerciseId: string): Promise<string[]>;
+  isExerciseAssignedToCourse(exerciseId: string, courseId: string): Promise<boolean>;
 
   getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
   createJournalEntry(entry: InsertJournalEntry, lines: InsertJournalLine[]): Promise<JournalEntry>;
@@ -237,6 +245,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(exercises).where(eq(exercises.courseId, courseId));
   }
 
+  async getExercisesForCourse(courseId: string): Promise<Exercise[]> {
+    const assignments = await db.select().from(courseExercises).where(eq(courseExercises.courseId, courseId));
+    if (assignments.length === 0) return [];
+    const exerciseIds = assignments.map(a => a.exerciseId);
+    const allExercises = await db.select().from(exercises);
+    return allExercises.filter(e => exerciseIds.includes(e.id));
+  }
+
   async createExercise(exercise: InsertExercise): Promise<Exercise> {
     const [created] = await db.insert(exercises).values(exercise).returning();
     return created;
@@ -249,6 +265,34 @@ export class DatabaseStorage implements IStorage {
   async updateExerciseSolution(id: string, solution: string | null): Promise<Exercise> {
     const [updated] = await db.update(exercises).set({ solution }).where(eq(exercises.id, id)).returning();
     return updated;
+  }
+
+  async getCourseExercises(courseId: string): Promise<CourseExercise[]> {
+    return db.select().from(courseExercises).where(eq(courseExercises.courseId, courseId));
+  }
+
+  async assignExerciseToCourse(courseId: string, exerciseId: string): Promise<CourseExercise> {
+    const existing = await db.select().from(courseExercises)
+      .where(and(eq(courseExercises.courseId, courseId), eq(courseExercises.exerciseId, exerciseId)));
+    if (existing.length > 0) return existing[0];
+    const [created] = await db.insert(courseExercises).values({ courseId, exerciseId }).returning();
+    return created;
+  }
+
+  async unassignExerciseFromCourse(courseId: string, exerciseId: string): Promise<void> {
+    await db.delete(courseExercises)
+      .where(and(eq(courseExercises.courseId, courseId), eq(courseExercises.exerciseId, exerciseId)));
+  }
+
+  async getAssignedCourseIds(exerciseId: string): Promise<string[]> {
+    const rows = await db.select().from(courseExercises).where(eq(courseExercises.exerciseId, exerciseId));
+    return rows.map(r => r.courseId);
+  }
+
+  async isExerciseAssignedToCourse(exerciseId: string, courseId: string): Promise<boolean> {
+    const rows = await db.select().from(courseExercises)
+      .where(and(eq(courseExercises.courseId, courseId), eq(courseExercises.exerciseId, exerciseId)));
+    return rows.length > 0;
   }
 
   async getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]> {

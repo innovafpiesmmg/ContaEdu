@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp } from "lucide-react";
+import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Exercise, Course, ExerciseSubmission } from "@shared/schema";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
 
 interface SubmissionWithStudent extends ExerciseSubmission {
@@ -177,16 +179,173 @@ function parseExercisesMD(md: string): Array<{ title: string; description: strin
   return exercises;
 }
 
+function ExerciseCard({
+  ex,
+  courses,
+  onViewSolution,
+  onUploadSolution,
+  onViewSubmissions,
+  onDelete,
+  onAssign,
+  onUnassign,
+  showSubmissions,
+  submissions,
+  onReview,
+}: {
+  ex: Exercise;
+  courses: Course[];
+  onViewSolution: () => void;
+  onUploadSolution: () => void;
+  onViewSubmissions: () => void;
+  onDelete: () => void;
+  onAssign: (courseId: string) => void;
+  onUnassign: (courseId: string) => void;
+  showSubmissions: boolean;
+  submissions?: SubmissionWithStudent[];
+  onReview: (s: SubmissionWithStudent) => void;
+}) {
+  const { data: assignedCourseIds } = useQuery<string[]>({
+    queryKey: ["/api/exercises", ex.id, "courses"],
+    queryFn: () => fetch(`/api/exercises/${ex.id}/courses`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const assignedCourses = courses.filter(c => assignedCourseIds?.includes(c.id));
+
+  return (
+    <Card className="hover-elevate" data-testid={`exercise-card-${ex.id}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className={`p-2.5 rounded-lg mt-0.5 ${ex.exerciseType === "guided" ? "bg-chart-4/10" : "bg-chart-3/10"}`}>
+              {ex.exerciseType === "guided" ? (
+                <BookOpen className="w-5 h-5 text-chart-4" />
+              ) : (
+                <PenLine className="w-5 h-5 text-chart-3" />
+              )}
+            </div>
+            <div>
+              <p className="font-medium">{ex.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ex.description}</p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant={ex.exerciseType === "guided" ? "default" : "secondary"}>
+                  {ex.exerciseType === "guided" ? "Guiado" : "Práctica"}
+                </Badge>
+                {assignedCourses.length > 0 ? (
+                  assignedCourses.map(c => (
+                    <Badge key={c.id} variant="outline" className="text-xs">{c.name}</Badge>
+                  ))
+                ) : (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">Sin asignar</Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Asignar a cursos"
+                  data-testid={`button-assign-courses-${ex.id}`}
+                >
+                  <Link2 className="w-4 h-4 text-primary" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-3" align="end">
+                <p className="text-sm font-medium mb-2">Asignar a cursos</p>
+                {courses.length > 0 ? (
+                  <div className="space-y-2">
+                    {courses.map(c => {
+                      const isAssigned = assignedCourseIds?.includes(c.id) || false;
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer" data-testid={`checkbox-course-${c.id}-${ex.id}`}>
+                          <Checkbox
+                            checked={isAssigned}
+                            onCheckedChange={(checked) => {
+                              if (checked) onAssign(c.id);
+                              else onUnassign(c.id);
+                            }}
+                          />
+                          {c.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No hay cursos disponibles</p>
+                )}
+              </PopoverContent>
+            </Popover>
+            {ex.solution ? (
+              <Button size="icon" variant="ghost" onClick={onViewSolution} data-testid={`button-view-solution-${ex.id}`} title="Ver solución">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+              </Button>
+            ) : (
+              <Button size="icon" variant="ghost" onClick={onUploadSolution} data-testid={`button-upload-solution-${ex.id}`} title="Subir solución">
+                <FileUp className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            )}
+            <Button size="icon" variant="ghost" onClick={onViewSubmissions} data-testid={`button-view-submissions-${ex.id}`} title="Ver entregas">
+              <Eye className="w-4 h-4 text-primary" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={onDelete} data-testid={`button-delete-exercise-${ex.id}`}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+
+        {showSubmissions && (
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+              <Send className="w-4 h-4" /> Entregas de alumnos
+            </h4>
+            {submissions && submissions.length > 0 ? (
+              <div className="space-y-2">
+                {submissions.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2" data-testid={`submission-row-${s.id}`}>
+                    <div>
+                      <span className="font-medium">{s.studentName}</span>
+                      <span className="text-xs text-muted-foreground ml-2">@{s.studentUsername}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={s.status === "reviewed" ? "default" : s.status === "submitted" ? "secondary" : "outline"}>
+                        {s.status === "reviewed" ? "Corregido" : s.status === "submitted" ? "Entregado" : "En curso"}
+                      </Badge>
+                      {s.grade && (
+                        <Badge variant="outline" className="gap-1"><Star className="w-3 h-3" /> {s.grade}</Badge>
+                      )}
+                      {s.status === "submitted" && (
+                        <Button size="sm" variant="outline" onClick={() => onReview(s)} data-testid={`button-review-${s.id}`}>
+                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Corregir
+                        </Button>
+                      )}
+                      {s.status === "reviewed" && s.feedback && (
+                        <span className="text-xs text-muted-foreground max-w-[200px] truncate" title={s.feedback}>{s.feedback}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Ningún alumno ha entregado este ejercicio</p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ExercisesPage() {
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [importCourseId, setImportCourseId] = useState("");
   const [viewSubmissionsId, setViewSubmissionsId] = useState<string | null>(null);
   const [reviewingSubmission, setReviewingSubmission] = useState<SubmissionWithStudent | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [gradeText, setGradeText] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", exerciseType: "practice" as string, courseId: "" });
+  const [form, setForm] = useState({ title: "", description: "", exerciseType: "practice" as string });
   const [solutionExerciseId, setSolutionExerciseId] = useState<string | null>(null);
   const [solutionText, setSolutionText] = useState("");
   const [viewSolutionId, setViewSolutionId] = useState<string | null>(null);
@@ -207,7 +366,7 @@ export default function ExercisesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
       setOpen(false);
-      setForm({ title: "", description: "", exerciseType: "practice", courseId: "" });
+      setForm({ title: "", description: "", exerciseType: "practice" });
       toast({ title: "Ejercicio creado correctamente" });
     },
     onError: (err: Error) => {
@@ -226,14 +385,13 @@ export default function ExercisesPage() {
   const importMutation = useMutation({
     mutationFn: async (parsed: Array<{ title: string; description: string; exerciseType: string }>) => {
       for (const ex of parsed) {
-        await apiRequest("POST", "/api/exercises", { ...ex, courseId: importCourseId });
+        await apiRequest("POST", "/api/exercises", ex);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
       setImportOpen(false);
       setImportText("");
-      setImportCourseId("");
       toast({ title: "Ejercicios importados correctamente" });
     },
     onError: (err: Error) => {
@@ -294,14 +452,28 @@ export default function ExercisesPage() {
     },
   });
 
+  const assignMutation = useMutation({
+    mutationFn: ({ exerciseId, courseId }: { exerciseId: string; courseId: string }) =>
+      apiRequest("POST", `/api/exercises/${exerciseId}/assign`, { courseId }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "courses"] });
+      toast({ title: "Ejercicio asignado al curso" });
+    },
+  });
+
+  const unassignMutation = useMutation({
+    mutationFn: ({ exerciseId, courseId }: { exerciseId: string; courseId: string }) =>
+      apiRequest("POST", `/api/exercises/${exerciseId}/unassign`, { courseId }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "courses"] });
+      toast({ title: "Ejercicio desvinculado del curso" });
+    },
+  });
+
   const handleImport = () => {
     const parsed = parseExercisesMD(importText);
     if (parsed.length === 0) {
-      toast({ title: "Error", description: "No se encontraron ejercicios validos en el texto", variant: "destructive" });
-      return;
-    }
-    if (!importCourseId) {
-      toast({ title: "Error", description: "Selecciona un curso", variant: "destructive" });
+      toast({ title: "Error", description: "No se encontraron ejercicios válidos en el texto", variant: "destructive" });
       return;
     }
     importMutation.mutate(parsed);
@@ -418,24 +590,11 @@ export default function ExercisesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Curso</Label>
-                  <Select value={form.courseId} onValueChange={v => setForm({ ...form, courseId: v })}>
-                    <SelectTrigger data-testid="select-exercise-course">
-                      <SelectValue placeholder="Seleccionar curso..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses?.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <Button
                   data-testid="button-save-exercise"
                   className="w-full"
                   onClick={() => createMutation.mutate()}
-                  disabled={!form.title || !form.description || !form.courseId || createMutation.isPending}
+                  disabled={!form.title || !form.description || createMutation.isPending}
                 >
                   {createMutation.isPending ? "Creando..." : "Crear Ejercicio"}
                 </Button>
@@ -455,128 +614,22 @@ export default function ExercisesPage() {
           animate={{ opacity: 1 }}
           className="space-y-3"
         >
-          {exercises.map(ex => {
-            const course = courses?.find(c => c.id === ex.courseId);
-            return (
-              <Card key={ex.id} className="hover-elevate" data-testid={`exercise-card-${ex.id}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2.5 rounded-lg mt-0.5 ${ex.exerciseType === "guided" ? "bg-chart-4/10" : "bg-chart-3/10"}`}>
-                        {ex.exerciseType === "guided" ? (
-                          <BookOpen className="w-5 h-5 text-chart-4" />
-                        ) : (
-                          <PenLine className="w-5 h-5 text-chart-3" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">{ex.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ex.description}</p>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <Badge variant={ex.exerciseType === "guided" ? "default" : "secondary"}>
-                            {ex.exerciseType === "guided" ? "Guiado" : "Practica"}
-                          </Badge>
-                          {course && <Badge variant="secondary">{course.name}</Badge>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {ex.solution ? (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
-                          data-testid={`button-view-solution-${ex.id}`}
-                          title="Ver solución"
-                        >
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        </Button>
-                      ) : (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => { setSolutionExerciseId(ex.id); setSolutionText(""); }}
-                          data-testid={`button-upload-solution-${ex.id}`}
-                          title="Subir solución"
-                        >
-                          <FileUp className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setViewSubmissionsId(viewSubmissionsId === ex.id ? null : ex.id)}
-                        data-testid={`button-view-submissions-${ex.id}`}
-                        title="Ver entregas"
-                      >
-                        <Eye className="w-4 h-4 text-primary" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => deleteMutation.mutate(ex.id)}
-                        data-testid={`button-delete-exercise-${ex.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {viewSubmissionsId === ex.id && (
-                    <div className="mt-4 pt-4 border-t">
-                      <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
-                        <Send className="w-4 h-4" /> Entregas de alumnos
-                      </h4>
-                      {submissions && submissions.length > 0 ? (
-                        <div className="space-y-2">
-                          {submissions.map((s) => (
-                            <div key={s.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2" data-testid={`submission-row-${s.id}`}>
-                              <div>
-                                <span className="font-medium">{s.studentName}</span>
-                                <span className="text-xs text-muted-foreground ml-2">@{s.studentUsername}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant={s.status === "reviewed" ? "default" : s.status === "submitted" ? "secondary" : "outline"}>
-                                  {s.status === "reviewed" ? "Corregido" : s.status === "submitted" ? "Entregado" : "En curso"}
-                                </Badge>
-                                {s.grade && (
-                                  <Badge variant="outline" className="gap-1">
-                                    <Star className="w-3 h-3" /> {s.grade}
-                                  </Badge>
-                                )}
-                                {s.status === "submitted" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setReviewingSubmission(s);
-                                      setFeedbackText("");
-                                      setGradeText("");
-                                    }}
-                                    data-testid={`button-review-${s.id}`}
-                                  >
-                                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
-                                    Corregir
-                                  </Button>
-                                )}
-                                {s.status === "reviewed" && s.feedback && (
-                                  <span className="text-xs text-muted-foreground max-w-[200px] truncate" title={s.feedback}>
-                                    {s.feedback}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Ningun alumno ha entregado este ejercicio</p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          {exercises.map(ex => (
+              <ExerciseCard
+                key={ex.id}
+                ex={ex}
+                courses={courses || []}
+                onViewSolution={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
+                onUploadSolution={() => { setSolutionExerciseId(ex.id); setSolutionText(""); }}
+                onViewSubmissions={() => setViewSubmissionsId(viewSubmissionsId === ex.id ? null : ex.id)}
+                onDelete={() => deleteMutation.mutate(ex.id)}
+                onAssign={(courseId) => assignMutation.mutate({ exerciseId: ex.id, courseId })}
+                onUnassign={(courseId) => unassignMutation.mutate({ exerciseId: ex.id, courseId })}
+                showSubmissions={viewSubmissionsId === ex.id}
+                submissions={viewSubmissionsId === ex.id ? submissions : undefined}
+                onReview={(s) => { setReviewingSubmission(s); setFeedbackText(""); setGradeText(""); }}
+              />
+          ))}
         </motion.div>
       ) : (
         <Card>
@@ -610,20 +663,6 @@ export default function ExercisesPage() {
                 <FileText className="w-4 h-4 mr-1.5" />
                 Subir archivo .md
               </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Curso destino</Label>
-              <Select value={importCourseId} onValueChange={setImportCourseId}>
-                <SelectTrigger data-testid="select-import-course">
-                  <SelectValue placeholder="Seleccionar curso..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses?.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
@@ -661,7 +700,7 @@ export default function ExercisesPage() {
               data-testid="button-confirm-import-exercises"
               className="w-full"
               onClick={handleImport}
-              disabled={previewParsed.length === 0 || !importCourseId || importMutation.isPending}
+              disabled={previewParsed.length === 0 || importMutation.isPending}
             >
               {importMutation.isPending ? "Importando..." : `Importar ${previewParsed.length} ejercicio${previewParsed.length !== 1 ? "s" : ""}`}
             </Button>

@@ -468,17 +468,15 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  // Exercises
+  // Exercises (shared repository - all teachers see all exercises)
   app.get("/api/exercises", requireAuth, async (req: any, res) => {
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "No autenticado" });
 
-    if (user.role === "teacher") {
-      res.json(await storage.getExercisesByTeacher(user.id));
-    } else if (user.role === "student" && user.courseId) {
-      res.json(await storage.getExercisesByCourse(user.courseId));
-    } else if (user.role === "admin") {
+    if (user.role === "teacher" || user.role === "admin") {
       res.json(await storage.getExercises());
+    } else if (user.role === "student" && user.courseId) {
+      res.json(await storage.getExercisesForCourse(user.courseId));
     } else {
       res.json([]);
     }
@@ -490,7 +488,6 @@ export async function registerRoutes(
         title: req.body.title,
         description: req.body.description,
         exerciseType: req.body.exerciseType || "practice",
-        courseId: req.body.courseId,
         teacherId: req.user.id,
       });
       res.json(exercise);
@@ -504,9 +501,37 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // Course-exercise assignment
+  app.get("/api/exercises/:id/courses", requireRole("teacher"), async (req: any, res) => {
+    const courseIds = await storage.getAssignedCourseIds(req.params.id);
+    res.json(courseIds);
+  });
+
+  app.post("/api/exercises/:id/assign", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const { courseId } = req.body;
+      if (!courseId) return res.status(400).json({ message: "Falta el ID del curso" });
+      const result = await storage.assignExerciseToCourse(courseId, req.params.id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/exercises/:id/unassign", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const { courseId } = req.body;
+      if (!courseId) return res.status(400).json({ message: "Falta el ID del curso" });
+      await storage.unassignExerciseFromCourse(courseId, req.params.id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   // Exercise solutions
   app.get("/api/exercises/:id/solution", requireRole("teacher"), async (req: any, res) => {
-    const allExercises = await storage.getExercisesByTeacher(req.session.userId);
+    const allExercises = await storage.getExercises();
     const exercise = allExercises.find(e => e.id === req.params.id);
     if (!exercise) {
       return res.status(404).json({ message: "Ejercicio no encontrado" });
@@ -516,7 +541,7 @@ export async function registerRoutes(
 
   app.post("/api/exercises/:id/solution", requireRole("teacher"), async (req: any, res) => {
     try {
-      const allExercises = await storage.getExercisesByTeacher(req.session.userId);
+      const allExercises = await storage.getExercises();
       const exercise = allExercises.find(e => e.id === req.params.id);
       if (!exercise) {
         return res.status(404).json({ message: "Ejercicio no encontrado" });
@@ -543,7 +568,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/exercises/:id/solution", requireRole("teacher"), async (req: any, res) => {
-    const allExercises = await storage.getExercisesByTeacher(req.session.userId);
+    const allExercises = await storage.getExercises();
     const exercise = allExercises.find(e => e.id === req.params.id);
     if (!exercise) {
       return res.status(404).json({ message: "Ejercicio no encontrado" });
@@ -702,7 +727,8 @@ export async function registerRoutes(
       const exercise = await storage.getExercises();
       const ex = exercise.find(e => e.id === req.params.exerciseId);
       if (!ex) return res.status(404).json({ message: "Ejercicio no encontrado" });
-      if (ex.courseId !== req.user.courseId) return res.status(403).json({ message: "Sin acceso a este ejercicio" });
+      const hasAccess = req.user.courseId ? await storage.isExerciseAssignedToCourse(req.params.exerciseId, req.user.courseId) : false;
+      if (!hasAccess) return res.status(403).json({ message: "Sin acceso a este ejercicio" });
 
       const existing = await storage.getExerciseSubmission(req.params.exerciseId, req.user.id);
       if (existing && (existing.status === "submitted" || existing.status === "reviewed")) {
