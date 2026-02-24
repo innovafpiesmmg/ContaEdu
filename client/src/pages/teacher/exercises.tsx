@@ -32,11 +32,37 @@ La empresa TextilSur S.L. realiza las siguientes operaciones durante el mes de m
 
 1. Compra mercaderías al proveedor Hilaturas del Norte por 5.000 EUR + IVA 21%. Pago a 30 días.
 2. Vende productos al cliente Modas López por 8.000 EUR + IVA 21%. Cobro a 60 días.
-3. Devuelve mercaderías defectuosas al proveedor por valor de 500 EUR + IVA 21%.
-4. El cliente Modas López paga la factura mediante transferencia bancaria.
-5. Se paga al proveedor Hilaturas del Norte la factura pendiente.
+3. El cliente Modas López paga la factura mediante transferencia bancaria.
 
 Registrar todos los asientos contables correspondientes.
+
+## Solución
+
+### Asiento 1: Compra de mercaderías
+Fecha: 2024-03-05
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías | 5.000,00 | |
+| 472 H.P. IVA soportado | 1.050,00 | |
+| 400 Proveedores | | 6.050,00 |
+
+### Asiento 2: Venta de productos
+Fecha: 2024-03-10
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 9.680,00 | |
+| 700 Ventas de mercaderías | | 8.000,00 |
+| 477 H.P. IVA repercutido | | 1.680,00 |
+
+### Asiento 3: Cobro del cliente
+Fecha: 2024-03-20
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 9.680,00 | |
+| 430 Clientes | | 9.680,00 |
 
 ---
 
@@ -53,17 +79,9 @@ Trabajador A:
 - Retención IRPF: 300 EUR
 - Seguridad Social empresa: 600 EUR
 
-Trabajador B:
-- Sueldo bruto: 1.500 EUR
-- Seguridad Social trabajador: 95 EUR
-- Retención IRPF: 180 EUR
-- Seguridad Social empresa: 450 EUR
-
 Registrar:
 1. El devengo de las nóminas
 2. El pago de los salarios netos por banco
-3. La liquidación a la Seguridad Social
-4. El ingreso de las retenciones de IRPF
 `;
 }
 
@@ -159,21 +177,84 @@ function parseSolutionMD(md: string): SolutionEntry[] {
   return entries;
 }
 
-function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string }> {
-  const exercises: Array<{ title: string; description: string; exerciseType: string }> = [];
+function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
+  const entries: SolutionEntry[] = [];
+  const asientoBlocks = solutionBlock.split(/(?=###\s+Asiento\s+\d+)/i).map(b => b.trim()).filter(Boolean);
+
+  for (const block of asientoBlocks) {
+    const headerMatch = block.match(/^###\s+Asiento\s+(\d+)\s*[:\-]?\s*(.*)$/im);
+    if (!headerMatch) continue;
+
+    const entryNumber = parseInt(headerMatch[1]);
+    const description = headerMatch[2].trim();
+    const dateMatch = block.match(/Fecha:\s*(\S+)/i);
+    const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
+
+    const lines: SolutionLine[] = [];
+    const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
+    if (tableRows) {
+      for (const row of tableRows) {
+        if (row.includes("Cuenta") || row.includes("---")) continue;
+        const cells = row.split("|").map(c => c.trim());
+        const nonEmpty = cells.filter(Boolean);
+        if (nonEmpty.length < 1) continue;
+
+        const startIdx = cells[0] === "" ? 1 : 0;
+        const accountFull = (cells[startIdx] || "").trim();
+        const codeMatch = accountFull.match(/^(\d+)\s+(.+)$/);
+        if (!codeMatch) continue;
+
+        const rawDebit = (cells[startIdx + 1] || "").trim().replace(/\./g, "").replace(",", ".");
+        const rawCredit = (cells[startIdx + 2] || "").trim().replace(/\./g, "").replace(",", ".");
+        const debit = parseFloat(rawDebit) || 0;
+        const credit = parseFloat(rawCredit) || 0;
+
+        lines.push({
+          accountCode: codeMatch[1],
+          accountName: codeMatch[2].trim(),
+          debit: debit.toFixed(2),
+          credit: credit.toFixed(2),
+        });
+      }
+    }
+
+    if (lines.length >= 2) {
+      entries.push({ entryNumber, date, description, lines });
+    }
+  }
+
+  return entries;
+}
+
+function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> {
+  const exercises: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> = [];
   const blocks = md.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
     const titleMatch = block.match(/^#\s+Ejercicio:\s*(.+)$/m);
     const typeMatch = block.match(/\*\*Tipo:\*\*\s*(practice|guided)/i);
-    const descMatch = block.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)$/i);
+
+    const solutionSplit = block.split(/^##\s+Soluci[oó]n\s*$/im);
+    const mainBlock = solutionSplit[0];
+    const solutionBlock = solutionSplit.length > 1 ? solutionSplit[1] : null;
+
+    const descMatch = mainBlock.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)$/i);
 
     if (titleMatch) {
-      exercises.push({
+      const entry: { title: string; description: string; exerciseType: string; solution?: SolutionEntry[] } = {
         title: titleMatch[1].trim(),
         exerciseType: typeMatch ? typeMatch[1].trim().toLowerCase() : "practice",
         description: descMatch ? descMatch[1].trim() : "",
-      });
+      };
+
+      if (solutionBlock) {
+        const parsed = parseSolutionFromBlock(solutionBlock);
+        if (parsed.length > 0) {
+          entry.solution = parsed;
+        }
+      }
+
+      exercises.push(entry);
     }
   }
   return exercises;
@@ -513,9 +594,14 @@ export default function ExercisesPage() {
   });
 
   const importMutation = useMutation({
-    mutationFn: async (parsed: Array<{ title: string; description: string; exerciseType: string }>) => {
+    mutationFn: async (parsed: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }>) => {
       for (const ex of parsed) {
-        await apiRequest("POST", "/api/exercises", ex);
+        const { solution, ...exerciseData } = ex;
+        const res = await apiRequest("POST", "/api/exercises", exerciseData);
+        const created = await res.json();
+        if (solution && solution.length > 0 && created.id) {
+          await apiRequest("POST", `/api/exercises/${created.id}/solution`, { entries: solution });
+        }
       }
     },
     onSuccess: () => {
@@ -818,6 +904,11 @@ export default function ExercisesPage() {
                         <Badge variant="secondary" className="text-[10px]">
                           {ex.exerciseType === "guided" ? "Guiado" : "Practica"}
                         </Badge>
+                        {ex.solution && ex.solution.length > 0 && (
+                          <Badge variant="outline" className="text-[10px] text-green-600 border-green-300">
+                            Solución: {ex.solution.length} asiento{ex.solution.length !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ex.description}</p>
                     </div>

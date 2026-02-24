@@ -92,7 +92,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 
 ## MD Import Templates
 ### Exercise Template Format
-Each exercise can describe multiple accounting entries (asientos) within a single exercise.
+Each exercise can describe multiple accounting entries (asientos) within a single exercise. Solutions can optionally be included inline using `## Solución` with `### Asiento N` sub-headers containing Markdown tables.
 ```md
 # Ejercicio: Title
 
@@ -102,7 +102,24 @@ Each exercise can describe multiple accounting entries (asientos) within a singl
 Description with multiple operations to record:
 1. First operation...
 2. Second operation...
-3. Third operation...
+
+## Solución
+
+### Asiento 1: Description
+Fecha: 2024-01-15
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías | 5.000,00 | |
+| 400 Proveedores | | 5.000,00 |
+
+### Asiento 2: Description
+Fecha: 2024-01-20
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 8.000,00 | |
+| 700 Ventas de mercaderías | | 8.000,00 |
 
 ---
 (separator between exercises)
