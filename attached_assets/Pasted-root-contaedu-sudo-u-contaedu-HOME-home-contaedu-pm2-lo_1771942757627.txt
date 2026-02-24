@@ -1,0 +1,67 @@
+root@contaedu:~# sudo -u contaedu HOME=/home/contaedu pm2 logs contaedu --lines 30 --nostream
+[TAILING] Tailing last 30 lines for [contaedu] process (change the value with --lines option)
+/var/log/contaedu/error.log last 30 lines:
+0|contaedu | 2026-02-24 13:49:31 +00:00: Failed to prune sessions: Error: ENOENT: no such file or directory, open '/var/www/contaedu/dist/table.sql'
+0|contaedu |     at async open (node:internal/fs/promises:634:25)
+0|contaedu |     at async Object.readFile (node:internal/fs/promises:1236:14)
+0|contaedu |     at async n._rawEnsureSessionStoreTable (/var/www/contaedu/dist/index.cjs:74:7072)
+0|contaedu |     at async n._asyncQuery (/var/www/contaedu/dist/index.cjs:74:8157) {
+0|contaedu |   errno: -2,
+0|contaedu |   code: 'ENOENT',
+0|contaedu |   syscall: 'open',
+0|contaedu |   path: '/var/www/contaedu/dist/table.sql'
+0|contaedu | }
+0|contaedu | 2026-02-24 14:01:37 +00:00: Failed to prune sessions: Error: ENOENT: no such file or directory, open '/var/www/contaedu/dist/table.sql'
+0|contaedu |     at async open (node:internal/fs/promises:634:25)
+0|contaedu |     at async Object.readFile (node:internal/fs/promises:1236:14)
+0|contaedu |     at async n._rawEnsureSessionStoreTable (/var/www/contaedu/dist/index.cjs:74:7072)
+0|contaedu |     at async n._asyncQuery (/var/www/contaedu/dist/index.cjs:74:8157) {
+0|contaedu |   errno: -2,
+0|contaedu |   code: 'ENOENT',
+0|contaedu |   syscall: 'open',
+0|contaedu |   path: '/var/www/contaedu/dist/table.sql'
+0|contaedu | }
+0|contaedu | 2026-02-24 14:17:44 +00:00: Session save error: Error: ENOENT: no such file or directory, open '/var/www/contaedu/dist/table.sql'
+0|contaedu |     at async open (node:internal/fs/promises:634:25)
+0|contaedu |     at async Object.readFile (node:internal/fs/promises:1236:14)
+0|contaedu |     at async n._rawEnsureSessionStoreTable (/var/www/contaedu/dist/index.cjs:74:7072)
+0|contaedu |     at async n._asyncQuery (/var/www/contaedu/dist/index.cjs:74:8157) {
+0|contaedu |   errno: -2,
+0|contaedu |   code: 'ENOENT',
+0|contaedu |   syscall: 'open',
+0|contaedu |   path: '/var/www/contaedu/dist/table.sql'
+0|contaedu | }
+
+/var/log/contaedu/out.log last 30 lines:
+0|contaedu | 2026-02-24 12:44:04 +00:00: 12:44:04 PM [express] POST /api/auth/login 200 in 114ms :: {"id":"26cc2276-2e22-4162-a39b-f33558ca3819","username":"admin","fullName":"Administrador General","role":"admin","courseId":null,"createdBy":null}
+0|contaedu | 2026-02-24 12:44:04 +00:00: 12:44:04 PM [express] GET /api/school-years 401 in 1ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:44:04 +00:00: 12:44:04 PM [express] GET /api/users/teachers 401 in 2ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:44:04 +00:00: 12:44:04 PM [express] GET /api/courses 401 in 2ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:44:04 +00:00: 12:44:04 PM [express] GET /api/config 401 in 1ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:44:06 +00:00: 12:44:06 PM [express] GET /api/users/teachers 401 in 1ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:44:35 +00:00: 12:44:35 PM [express] POST /api/users/teachers 401 in 2ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:46:24 +00:00: Database already seeded
+0|contaedu | 2026-02-24 12:46:25 +00:00: 12:46:24 PM [express] serving on port 5000
+0|contaedu | 2026-02-24 12:46:31 +00:00: 12:46:31 PM [express] GET /api/auth/me 401 in 4ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:46:34 +00:00: 12:46:34 PM [express] POST /api/auth/login 200 in 115ms :: {"id":"26cc2276-2e22-4162-a39b-f33558ca3819","username":"admin","fullName":"Administrador General","role":"admin","courseId":null,"createdBy":null}
+0|contaedu | 2026-02-24 12:46:34 +00:00: 12:46:34 PM [express] GET /api/users/teachers 401 in 2ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:47:14 +00:00: 12:47:14 PM [express] POST /api/users/teachers 401 in 1ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:49:10 +00:00: Database already seeded
+0|contaedu | 2026-02-24 12:49:10 +00:00: 12:49:10 PM [express] serving on port 5000
+0|contaedu | 2026-02-24 12:49:50 +00:00: 12:49:50 PM [express] GET /api/auth/me 401 in 4ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 12:49:54 +00:00: 12:49:54 PM [express] POST /api/auth/login 500 in 115ms :: {"message":"Error al guardar sesión"}
+0|contaedu | 2026-02-24 12:50:18 +00:00: 12:50:18 PM [express] POST /api/auth/login 500 in 107ms :: {"message":"Error al guardar sesión"}
+0|contaedu | 2026-02-24 14:16:44 +00:00: Database already seeded
+0|contaedu | 2026-02-24 14:16:44 +00:00: 2:16:44 PM [express] serving on port 5000
+0|contaedu | 2026-02-24 14:17:15 +00:00: Database already seeded
+0|contaedu | 2026-02-24 14:17:15 +00:00: 2:17:15 PM [express] serving on port 5000
+0|contaedu | 2026-02-24 14:17:34 +00:00: 2:17:34 PM [express] GET /api/auth/me 401 in 3ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 14:17:44 +00:00: 2:17:44 PM [express] POST /api/auth/login 200 in 131ms :: {"id":"26cc2276-2e22-4162-a39b-f33558ca3819","username":"admin","fullName":"Administrador General","role":"admin","courseId":null,"createdBy":null}
+0|contaedu | 2026-02-24 14:17:44 +00:00: 2:17:44 PM [express] GET /api/school-years 401 in 3ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 14:17:44 +00:00: 2:17:44 PM [express] GET /api/users/teachers 401 in 2ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 14:17:44 +00:00: 2:17:44 PM [express] GET /api/courses 401 in 1ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 14:17:44 +00:00: 2:17:44 PM [express] GET /api/config 401 in 1ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 14:17:48 +00:00: 2:17:48 PM [express] GET /api/users/teachers 401 in 2ms :: {"message":"No autenticado"}
+0|contaedu | 2026-02-24 14:18:15 +00:00: 2:18:15 PM [express] POST /api/users/teachers 401 in 2ms :: {"message":"No autenticado"}
+
+root@contaedu:~# 

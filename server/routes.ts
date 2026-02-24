@@ -20,9 +20,20 @@ export async function registerRoutes(
   app.set("trust proxy", true);
 
   const PgSession = connectPg(session);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "session" (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL,
+      CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+    ) WITH (OIDS=FALSE);
+    CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+  `);
+
   app.use(
     session({
-      store: new PgSession({ pool, createTableIfMissing: true }),
+      store: new PgSession({ pool, createTableIfMissing: false }),
       secret: process.env.SESSION_SECRET || "contaedu-secret-key-2024",
       resave: false,
       saveUninitialized: false,
