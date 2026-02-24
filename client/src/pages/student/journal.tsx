@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock } from "lucide-react";
+import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useExercise } from "@/lib/exercise-context";
 import { useLocation } from "wouter";
-import type { JournalEntry, JournalLine, Account, Exercise, Exam, ExerciseDocument } from "@shared/schema";
+import type { JournalEntry, JournalLine, Account, Exercise, Exam, ExerciseDocument, ExerciseSubmission } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface JournalEntryWithLines extends JournalEntry {
@@ -203,8 +203,13 @@ export default function JournalPage() {
   });
   const { data: accounts } = useQuery<Account[]>({ queryKey: ["/api/accounts"] });
   const { data: exercises } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
+  const { data: submissions } = useQuery<ExerciseSubmission[]>({ queryKey: ["/api/submissions"] });
+  const { data: exams } = useQuery<Exam[]>({ queryKey: ["/api/exams"] });
 
   const currentExercise = exercises?.find(e => e.id === currentExerciseId);
+  const currentSubmission = submissions?.find(s => s.exerciseId === currentExerciseId);
+  const isSubmitted = currentSubmission?.status === "submitted" || currentSubmission?.status === "reviewed";
+  const linkedExam = exams?.find(exam => exam.exerciseId === currentExerciseId);
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -309,46 +314,87 @@ export default function JournalPage() {
               <Badge variant="secondary" className="text-xs" data-testid="badge-current-exercise">
                 {currentExercise.title}
               </Badge>
+              {isSubmitted && (
+                <Badge variant={currentSubmission?.status === "reviewed" ? "default" : "secondary"} className="text-xs">
+                  {currentSubmission?.status === "reviewed" ? "Corregido" : "Entregado"}
+                </Badge>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 text-xs text-muted-foreground"
-                onClick={() => setLocation("/exercises")}
+                onClick={() => linkedExam ? setLocation("/exams") : setLocation("/exercises")}
                 data-testid="button-change-exercise"
               >
-                Cambiar ejercicio
+                {linkedExam ? "Volver a exámenes" : "Cambiar ejercicio"}
               </Button>
             </div>
           )}
         </div>
-        <Button
-          data-testid="button-new-entry"
-          onClick={() => setShowForm(!showForm)}
-          variant={showForm ? "secondary" : "default"}
-        >
-          {showForm ? (
-            <><ChevronUp className="w-4 h-4 mr-2" />Ocultar formulario</>
-          ) : (
-            <><Plus className="w-4 h-4 mr-2" />Nuevo Asiento</>
-          )}
-        </Button>
+        {!isSubmitted && (
+          <Button
+            data-testid="button-new-entry"
+            onClick={() => setShowForm(!showForm)}
+            variant={showForm ? "secondary" : "default"}
+          >
+            {showForm ? (
+              <><ChevronUp className="w-4 h-4 mr-2" />Ocultar formulario</>
+            ) : (
+              <><Plus className="w-4 h-4 mr-2" />Nuevo Asiento</>
+            )}
+          </Button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,1fr)_minmax(400px,2fr)] gap-4 items-start">
-        <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-          <Card className="border-primary/20">
+      {isSubmitted && (
+        <div className="mb-4">
+          <Card className={currentSubmission?.status === "reviewed" ? "border-green-300 bg-green-50 dark:bg-green-950/20" : "border-amber-300 bg-amber-50 dark:bg-amber-950/20"}>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-primary" />
-                <span className="font-medium text-sm">Enunciado</span>
-              </div>
-              <EnunciadoPanel exercise={currentExercise} exerciseId={currentExerciseId} />
+              {currentSubmission?.status === "reviewed" ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold text-sm">
+                      {linkedExam ? "Examen corregido" : "Ejercicio corregido"}
+                    </span>
+                    {currentSubmission.grade && (
+                      <Badge className="bg-green-600">{currentSubmission.grade} / 10</Badge>
+                    )}
+                  </div>
+                  {currentSubmission.feedback && (
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{currentSubmission.feedback}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                  <span className="text-sm font-medium">
+                    {linkedExam ? "Examen entregado" : "Ejercicio entregado"} — pendiente de corrección
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
+      )}
+
+      <div className={isSubmitted ? "" : "grid grid-cols-1 lg:grid-cols-[minmax(300px,1fr)_minmax(400px,2fr)] gap-4 items-start"}>
+        {!isSubmitted && (
+          <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+            <Card className="border-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span className="font-medium text-sm">Enunciado</span>
+                </div>
+                <EnunciadoPanel exercise={currentExercise} exerciseId={currentExerciseId} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="space-y-4">
-          {showForm && (
+          {showForm && !isSubmitted && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="border-primary/30 shadow-md" data-testid="entry-form">
                 <CardContent className="p-4">
@@ -494,14 +540,16 @@ export default function JournalPage() {
                           <p className="text-xs text-muted-foreground">{entry.date}</p>
                         </div>
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => deleteMutation.mutate(entry.id)}
-                        data-testid={`button-delete-entry-${entry.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      {!isSubmitted && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteMutation.mutate(entry.id)}
+                          data-testid={`button-delete-entry-${entry.id}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                     {entry.lines && entry.lines.length > 0 && (
                       <div className="bg-muted/30 rounded-md p-3">

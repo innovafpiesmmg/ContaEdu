@@ -9,7 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { useExercise } from "@/lib/exercise-context";
 import { Clock, FileQuestion, Play, Send, AlertTriangle, CheckCircle } from "lucide-react";
-import type { Exam, ExamAttempt } from "@shared/schema";
+import type { Exam, ExamAttempt, ExerciseSubmission } from "@shared/schema";
+import { Star, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 
@@ -205,7 +206,14 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
   const { data: attempt } = useQuery<ExamAttempt | null>({
     queryKey: [`/api/exams/${exam.id}/attempt`],
   });
+  const { data: submissions } = useQuery<ExerciseSubmission[]>({
+    queryKey: ["/api/submissions"],
+  });
+  const [, setLocation] = useLocation();
+  const { setCurrentExerciseId } = useExercise();
 
+  const examSubmission = exam.exerciseId ? submissions?.find(s => s.exerciseId === exam.exerciseId) : null;
+  const isReviewed = examSubmission?.status === "reviewed";
   const isSubmitted = attempt?.status === "submitted" || attempt?.status === "expired";
   const isInProgress = attempt?.status === "in_progress";
 
@@ -214,14 +222,16 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className={`p-2.5 rounded-lg mt-0.5 ${isSubmitted ? "bg-green-100 dark:bg-green-900/20" : "bg-primary/10"}`}>
-              {isSubmitted ? (
+            <div className={`p-2.5 rounded-lg mt-0.5 ${isReviewed ? "bg-green-100 dark:bg-green-900/20" : isSubmitted ? "bg-amber-100 dark:bg-amber-900/20" : "bg-primary/10"}`}>
+              {isReviewed ? (
                 <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : isSubmitted ? (
+                <Clock className="w-5 h-5 text-amber-600" />
               ) : (
                 <FileQuestion className="w-5 h-5 text-primary" />
               )}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="font-medium">{exam.title}</p>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{exam.description}</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -229,14 +239,44 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
                   <Clock className="w-3 h-3" />
                   {exam.durationMinutes} min
                 </Badge>
-                {isSubmitted && <Badge variant="default" className="bg-green-600">Entregado</Badge>}
+                {isReviewed && (
+                  <>
+                    <Badge variant="default" className="bg-green-600">Corregido</Badge>
+                    {examSubmission?.grade && (
+                      <Badge variant="outline" className="gap-1 text-green-600 border-green-300">
+                        <Star className="w-3 h-3" /> {examSubmission.grade} / 10
+                      </Badge>
+                    )}
+                  </>
+                )}
+                {isSubmitted && !isReviewed && <Badge variant="secondary">Entregado — Pendiente de corrección</Badge>}
                 {isInProgress && <Badge variant="secondary">En curso</Badge>}
               </div>
+
+              {isReviewed && examSubmission?.feedback && (
+                <div className="mt-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Retroalimentación del profesor:</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{examSubmission.feedback}</p>
+                </div>
+              )}
             </div>
           </div>
-          <div className="shrink-0">
-            {isSubmitted ? (
-              <Badge variant="outline" className="text-green-600">Completado</Badge>
+          <div className="shrink-0 flex flex-col gap-2">
+            {isSubmitted || isReviewed ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (exam.exerciseId) {
+                    setCurrentExerciseId(exam.exerciseId);
+                    setLocation("/journal");
+                  }
+                }}
+                data-testid={`button-view-exam-entries-${exam.id}`}
+              >
+                <Eye className="w-3.5 h-3.5 mr-1" />
+                Ver asientos
+              </Button>
             ) : isInProgress ? (
               <Button size="sm" onClick={() => onResume(exam.id)} data-testid={`button-resume-exam-${exam.id}`}>
                 <Play className="w-3.5 h-3.5 mr-1" />

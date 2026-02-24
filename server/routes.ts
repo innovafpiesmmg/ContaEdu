@@ -538,7 +538,10 @@ export async function registerRoutes(
     if (user.role === "teacher" || user.role === "admin") {
       res.json(await storage.getExercises());
     } else if (user.role === "student" && user.courseId) {
-      res.json(await storage.getExercisesForCourse(user.courseId));
+      const courseExercises = await storage.getExercisesForCourse(user.courseId);
+      const courseExams = await storage.getExamsByCourse(user.courseId);
+      const examExerciseIds = new Set(courseExams.map(e => e.exerciseId).filter(Boolean));
+      res.json(courseExercises.filter(e => !examExerciseIds.has(e.id)));
     } else {
       res.json([]);
     }
