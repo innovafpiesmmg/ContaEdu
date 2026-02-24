@@ -193,6 +193,8 @@ if [[ ! -d "$APP_DIR" ]]; then
   exit 1
 fi
 
+git config --global --add safe.directory "${APP_DIR}" 2>/dev/null
+
 [[ "$ACTION" == "status" ]] && show_status
 [[ "$ACTION" == "rollback" ]] && do_rollback
 
