@@ -86,6 +86,43 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password, fullName, enrollmentCode } = req.body;
+      if (!username || !password || !fullName || !enrollmentCode) {
+        return res.status(400).json({ message: "Todos los campos son obligatorios" });
+      }
+      if (password.length < 6) {
+        return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres" });
+      }
+      const existing = await storage.getUserByUsername(username);
+      if (existing) {
+        return res.status(400).json({ message: "El nombre de usuario ya existe" });
+      }
+      const course = await storage.getCourseByEnrollmentCode(enrollmentCode);
+      if (!course) {
+        return res.status(400).json({ message: "Código de matriculación no válido" });
+      }
+      const hashed = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        username,
+        password: hashed,
+        fullName,
+        role: "student",
+        courseId: course.id,
+        createdBy: course.teacherId,
+      });
+      req.session.userId = user.id;
+      req.session.save((err: any) => {
+        if (err) console.error("Session save error:", err);
+        const { password: _, ...safe } = user;
+        res.json(safe);
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "No autenticado" });
     const user = await storage.getUser(req.session.userId);
@@ -163,15 +200,30 @@ export async function registerRoutes(
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "No autenticado" });
 
-    let students;
+    const courseIdFilter = req.query.courseId as string | undefined;
+
+    let students: any[];
     if (user.role === "admin") {
-      students = await storage.getUsersByRole("student");
+      if (courseIdFilter) {
+        students = await storage.getUsersByCourse(courseIdFilter);
+      } else {
+        students = await storage.getUsersByRole("student");
+      }
     } else if (user.role === "teacher") {
-      students = await storage.getUsersByTeacher(user.id, "student");
+      if (courseIdFilter) {
+        const course = await storage.getCourseById(courseIdFilter);
+        if (course && course.teacherId === user.id) {
+          students = await storage.getUsersByCourse(courseIdFilter);
+        } else {
+          students = [];
+        }
+      } else {
+        students = await storage.getUsersByTeacher(user.id, "student");
+      }
     } else {
       students = [];
     }
-    res.json(students.map(({ password: _, ...s }) => s));
+    res.json(students.map(({ password: _, ...s }: any) => s));
   });
 
   app.post("/api/users/students", requireRole("teacher"), async (req: any, res) => {
@@ -274,15 +326,19 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  // Journal entries
+  // Journal entries - now exercise-scoped
   app.get("/api/journal-entries", requireAuth, async (req: any, res) => {
-    const entries = await storage.getJournalEntries(req.session.userId);
+    const exerciseId = req.query.exerciseId as string | undefined;
+    const entries = await storage.getJournalEntries(req.session.userId, exerciseId);
     res.json(entries);
   });
 
   app.post("/api/journal-entries", requireRole("student"), async (req: any, res) => {
     try {
-      const { date, description, lines } = req.body;
+      const { date, description, lines, exerciseId } = req.body;
+      if (!exerciseId) {
+        return res.status(400).json({ message: "Debes seleccionar un ejercicio" });
+      }
       if (!date || !description || !lines || !Array.isArray(lines) || lines.length < 2) {
         return res.status(400).json({ 
           message: `El asiento debe tener al menos 2 líneas (recibidas: ${Array.isArray(lines) ? lines.length : 0})` 
@@ -295,9 +351,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "El asiento no está cuadrado" });
       }
 
-      const entryNumber = await storage.getNextEntryNumber(req.user.id);
+      const entryNumber = await storage.getNextEntryNumber(req.user.id, exerciseId);
       const entry = await storage.createJournalEntry(
-        { entryNumber, date, description, userId: req.user.id },
+        { entryNumber, date, description, userId: req.user.id, exerciseId: exerciseId || null },
         lines.map((l: any) => ({
           journalEntryId: "",
           accountCode: l.accountCode,
@@ -317,15 +373,17 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  // Ledger
+  // Ledger - now exercise-scoped
   app.get("/api/ledger", requireAuth, async (req: any, res) => {
-    const ledger = await storage.getLedger(req.session.userId);
+    const exerciseId = req.query.exerciseId as string | undefined;
+    const ledger = await storage.getLedger(req.session.userId, exerciseId);
     res.json(ledger);
   });
 
-  // Trial balance
+  // Trial balance - now exercise-scoped
   app.get("/api/trial-balance", requireAuth, async (req: any, res) => {
-    const balance = await storage.getTrialBalance(req.session.userId);
+    const exerciseId = req.query.exerciseId as string | undefined;
+    const balance = await storage.getTrialBalance(req.session.userId, exerciseId);
     res.json(balance);
   });
 
@@ -336,7 +394,8 @@ export async function registerRoutes(
     if (req.user.role === "teacher" && student.createdBy !== req.user.id) {
       return res.status(403).json({ message: "Sin acceso a este alumno" });
     }
-    const entries = await storage.getJournalEntries(req.params.studentId);
+    const exerciseId = req.query.exerciseId as string | undefined;
+    const entries = await storage.getJournalEntries(req.params.studentId, exerciseId);
     res.json(entries);
   });
 
@@ -346,7 +405,8 @@ export async function registerRoutes(
     if (req.user.role === "teacher" && student.createdBy !== req.user.id) {
       return res.status(403).json({ message: "Sin acceso a este alumno" });
     }
-    const ledger = await storage.getLedger(req.params.studentId);
+    const exerciseId = req.query.exerciseId as string | undefined;
+    const ledger = await storage.getLedger(req.params.studentId, exerciseId);
     res.json(ledger);
   });
 
@@ -356,7 +416,8 @@ export async function registerRoutes(
     if (req.user.role === "teacher" && student.createdBy !== req.user.id) {
       return res.status(403).json({ message: "Sin acceso a este alumno" });
     }
-    const balance = await storage.getTrialBalance(req.params.studentId);
+    const exerciseId = req.query.exerciseId as string | undefined;
+    const balance = await storage.getTrialBalance(req.params.studentId, exerciseId);
     res.json(balance);
   });
 

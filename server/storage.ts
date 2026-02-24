@@ -13,12 +13,22 @@ import {
   type JournalLine, type InsertJournalLine,
 } from "@shared/schema";
 
+function generateEnrollmentCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
   getUsersByTeacher(teacherId: string, role: string): Promise<User[]>;
+  getUsersByCourse(courseId: string): Promise<User[]>;
   deleteUser(id: string): Promise<void>;
 
   getSchoolYears(): Promise<SchoolYear[]>;
@@ -32,6 +42,7 @@ export interface IStorage {
   getCourses(): Promise<Course[]>;
   getCourseById(id: string): Promise<Course | undefined>;
   getCoursesByTeacher(teacherId: string): Promise<Course[]>;
+  getCourseByEnrollmentCode(code: string): Promise<Course | undefined>;
   createCourse(course: InsertCourse): Promise<Course>;
   deleteCourse(id: string): Promise<void>;
 
@@ -44,13 +55,13 @@ export interface IStorage {
   createExercise(exercise: InsertExercise): Promise<Exercise>;
   deleteExercise(id: string): Promise<void>;
 
-  getJournalEntries(userId: string): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
+  getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
   createJournalEntry(entry: InsertJournalEntry, lines: InsertJournalLine[]): Promise<JournalEntry>;
   deleteJournalEntry(id: string): Promise<void>;
-  getNextEntryNumber(userId: string): Promise<number>;
+  getNextEntryNumber(userId: string, exerciseId?: string): Promise<number>;
 
-  getLedger(userId: string): Promise<any[]>;
-  getTrialBalance(userId: string): Promise<any>;
+  getLedger(userId: string, exerciseId?: string): Promise<any[]>;
+  getTrialBalance(userId: string, exerciseId?: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -76,6 +87,12 @@ export class DatabaseStorage implements IStorage {
   async getUsersByTeacher(teacherId: string, role: string): Promise<User[]> {
     return db.select().from(users).where(
       and(eq(users.role, role as any), eq(users.createdBy, teacherId))
+    );
+  }
+
+  async getUsersByCourse(courseId: string): Promise<User[]> {
+    return db.select().from(users).where(
+      and(eq(users.role, "student" as any), eq(users.courseId, courseId))
     );
   }
 
@@ -133,8 +150,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(courses).where(eq(courses.teacherId, teacherId));
   }
 
+  async getCourseByEnrollmentCode(code: string): Promise<Course | undefined> {
+    const [course] = await db.select().from(courses).where(eq(courses.enrollmentCode, code.toUpperCase()));
+    return course;
+  }
+
   async createCourse(course: InsertCourse): Promise<Course> {
-    const [created] = await db.insert(courses).values(course).returning();
+    const codeToUse = course.enrollmentCode || generateEnrollmentCode();
+    const [created] = await db.insert(courses).values({ ...course, enrollmentCode: codeToUse }).returning();
     return created;
   }
 
@@ -172,9 +195,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(exercises).where(eq(exercises.id, id));
   }
 
-  async getJournalEntries(userId: string): Promise<(JournalEntry & { lines: JournalLine[] })[]> {
-    const entries = await db.select().from(journalEntries)
-      .where(eq(journalEntries.userId, userId));
+  async getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]> {
+    let entries;
+    if (exerciseId) {
+      entries = await db.select().from(journalEntries)
+        .where(and(eq(journalEntries.userId, userId), eq(journalEntries.exerciseId, exerciseId)));
+    } else {
+      entries = await db.select().from(journalEntries)
+        .where(eq(journalEntries.userId, userId));
+    }
 
     const result = [];
     for (const entry of entries) {
@@ -185,9 +214,15 @@ export class DatabaseStorage implements IStorage {
     return result.sort((a, b) => a.entryNumber - b.entryNumber);
   }
 
-  async getNextEntryNumber(userId: string): Promise<number> {
-    const entries = await db.select().from(journalEntries)
-      .where(eq(journalEntries.userId, userId));
+  async getNextEntryNumber(userId: string, exerciseId?: string): Promise<number> {
+    let entries;
+    if (exerciseId) {
+      entries = await db.select().from(journalEntries)
+        .where(and(eq(journalEntries.userId, userId), eq(journalEntries.exerciseId, exerciseId)));
+    } else {
+      entries = await db.select().from(journalEntries)
+        .where(eq(journalEntries.userId, userId));
+    }
     return entries.length + 1;
   }
 
@@ -209,8 +244,8 @@ export class DatabaseStorage implements IStorage {
     await db.delete(journalEntries).where(eq(journalEntries.id, id));
   }
 
-  async getLedger(userId: string): Promise<any[]> {
-    const entries = await this.getJournalEntries(userId);
+  async getLedger(userId: string, exerciseId?: string): Promise<any[]> {
+    const entries = await this.getJournalEntries(userId, exerciseId);
     const accountMap = new Map<string, any>();
 
     for (const entry of entries) {
@@ -244,8 +279,8 @@ export class DatabaseStorage implements IStorage {
     return Array.from(accountMap.values()).sort((a, b) => a.accountCode.localeCompare(b.accountCode));
   }
 
-  async getTrialBalance(userId: string): Promise<any> {
-    const ledger = await this.getLedger(userId);
+  async getTrialBalance(userId: string, exerciseId?: string): Promise<any> {
+    const ledger = await this.getLedger(userId, exerciseId);
     const rows = ledger.map(acc => ({
       accountCode: acc.accountCode,
       accountName: acc.accountName,

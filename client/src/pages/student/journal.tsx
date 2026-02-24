@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpenCheck, Trash2, X } from "lucide-react";
+import { Plus, BookOpenCheck, Trash2, X, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import type { JournalEntry, JournalLine, Account } from "@shared/schema";
+import { useExercise } from "@/lib/exercise-context";
+import { useLocation } from "wouter";
+import type { JournalEntry, JournalLine, Account, Exercise } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface JournalEntryWithLines extends JournalEntry {
@@ -34,12 +36,26 @@ export default function JournalPage() {
     { accountCode: "", accountName: "", debit: "", credit: "" },
   ]);
   const { toast } = useToast();
+  const { currentExerciseId } = useExercise();
+  const [, setLocation] = useLocation();
 
-  const { data: entries, isLoading } = useQuery<JournalEntryWithLines[]>({ queryKey: ["/api/journal-entries"] });
+  const { data: entries, isLoading } = useQuery<JournalEntryWithLines[]>({
+    queryKey: ["/api/journal-entries", { exerciseId: currentExerciseId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/journal-entries?exerciseId=${currentExerciseId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error al cargar asientos");
+      return res.json();
+    },
+    enabled: !!currentExerciseId,
+  });
   const { data: accounts } = useQuery<Account[]>({ queryKey: ["/api/accounts"] });
+  const { data: exercises } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
+
+  const currentExercise = exercises?.find(e => e.id === currentExerciseId);
 
   const createMutation = useMutation({
     mutationFn: () => {
+      if (!currentExerciseId) throw new Error("Debes seleccionar un ejercicio");
       const validLines = lines.filter(l => {
         if (!l.accountCode) return false;
         const d = parseFloat(l.debit) || 0;
@@ -52,6 +68,7 @@ export default function JournalPage() {
       return apiRequest("POST", "/api/journal-entries", {
         date,
         description,
+        exerciseId: currentExerciseId,
         lines: validLines.map(l => ({
           accountCode: l.accountCode,
           accountName: l.accountName || l.accountCode,
@@ -111,12 +128,46 @@ export default function JournalPage() {
   const totalCredit = lines.reduce((sum, l) => sum + (parseFloat(l.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
+  if (!currentExerciseId) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+            <p className="text-lg font-medium mb-1">Selecciona un ejercicio</p>
+            <p className="text-muted-foreground text-sm mb-4">
+              Debes seleccionar un ejercicio antes de registrar asientos contables
+            </p>
+            <Button onClick={() => setLocation("/exercises")} data-testid="button-go-exercises">
+              Ir a Ejercicios
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Libro Diario</h1>
-          <p className="text-muted-foreground text-sm mt-1">Registro cronológico de asientos contables</p>
+          {currentExercise && (
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs" data-testid="badge-current-exercise">
+                {currentExercise.title}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-muted-foreground"
+                onClick={() => setLocation("/exercises")}
+                data-testid="button-change-exercise"
+              >
+                Cambiar ejercicio
+              </Button>
+            </div>
+          )}
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
@@ -306,7 +357,7 @@ export default function JournalPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <BookOpenCheck className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No hay asientos registrados</p>
+            <p className="text-muted-foreground">No hay asientos registrados para este ejercicio</p>
             <p className="text-xs text-muted-foreground mt-1">Registra tu primer asiento contable</p>
           </CardContent>
         </Card>

@@ -35,6 +35,7 @@ export const courses = pgTable("courses", {
   description: text("description"),
   teacherId: varchar("teacher_id").notNull(),
   schoolYearId: varchar("school_year_id").notNull(),
+  enrollmentCode: text("enrollment_code").unique(),
 });
 
 export const accounts = pgTable("accounts", {
@@ -105,3 +106,12 @@ export const loginSchema = z.object({
   password: z.string().min(1, "La contraseña es obligatoria"),
 });
 export type LoginData = z.infer<typeof loginSchema>;
+
+// Student registration schema
+export const registerSchema = z.object({
+  username: z.string().min(3, "Mínimo 3 caracteres"),
+  password: z.string().min(6, "Mínimo 6 caracteres"),
+  fullName: z.string().min(1, "El nombre es obligatorio"),
+  enrollmentCode: z.string().min(1, "El código de matriculación es obligatorio"),
+});
+export type RegisterData = z.infer<typeof registerSchema>;

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, GraduationCap, Trash2 } from "lucide-react";
+import { Plus, GraduationCap, Trash2, Copy, KeyRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Course, SchoolYear } from "@shared/schema";
@@ -44,6 +44,11 @@ export default function CoursesPage() {
     },
   });
 
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Codigo copiado al portapapeles" });
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -69,23 +74,23 @@ export default function CoursesPage() {
                   data-testid="input-course-name"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="1º CFGM Gestión Administrativa"
+                  placeholder="1o CFGM Gestion Administrativa"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Descripción</Label>
+                <Label>Descripcion</Label>
                 <Textarea
                   data-testid="input-course-description"
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
-                  placeholder="Descripción del curso..."
+                  placeholder="Descripcion del curso..."
                 />
               </div>
               <div className="space-y-2">
-                <Label>Año Escolar</Label>
+                <Label>Ano Escolar</Label>
                 <Select value={form.schoolYearId} onValueChange={v => setForm({ ...form, schoolYearId: v })}>
                   <SelectTrigger data-testid="select-year">
-                    <SelectValue placeholder="Seleccionar año..." />
+                    <SelectValue placeholder="Seleccionar ano..." />
                   </SelectTrigger>
                   <SelectContent>
                     {years?.map(y => (
@@ -131,6 +136,23 @@ export default function CoursesPage() {
                         <p className="font-medium">{c.name}</p>
                         {c.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{c.description}</p>}
                         {year && <Badge variant="secondary" className="mt-2">{year.name}</Badge>}
+                        {c.enrollmentCode && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <KeyRound className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="font-mono text-sm font-semibold tracking-widest" data-testid={`enrollment-code-${c.id}`}>
+                              {c.enrollmentCode}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => copyCode(c.enrollmentCode!)}
+                              data-testid={`button-copy-code-${c.id}`}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button

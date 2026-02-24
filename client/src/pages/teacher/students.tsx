@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Trash2, Eye } from "lucide-react";
+import { Plus, Users, Trash2, Eye, Filter } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,10 +19,16 @@ import { motion } from "framer-motion";
 export default function StudentsPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ fullName: "", username: "", password: "", courseId: "" });
+  const [filterCourseId, setFilterCourseId] = useState<string>("all");
   const { toast } = useToast();
 
   const { data: students, isLoading } = useQuery<User[]>({ queryKey: ["/api/users/students"] });
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
+
+  const filteredStudents = students?.filter(s => {
+    if (filterCourseId === "all") return true;
+    return s.courseId === filterCourseId;
+  });
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -71,7 +77,7 @@ export default function StudentsPage() {
                   data-testid="input-student-name"
                   value={form.fullName}
                   onChange={e => setForm({ ...form, fullName: e.target.value })}
-                  placeholder="Juan Pérez Martínez"
+                  placeholder="Juan Perez Martinez"
                 />
               </div>
               <div className="space-y-2">
@@ -84,13 +90,13 @@ export default function StudentsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Contraseña</Label>
+                <Label>Contrasena</Label>
                 <Input
                   data-testid="input-student-password"
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimo 6 caracteres"
                 />
               </div>
               <div className="space-y-2">
@@ -119,17 +125,34 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
+      {courses && courses.length > 1 && (
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={filterCourseId} onValueChange={setFilterCourseId}>
+            <SelectTrigger className="w-64" data-testid="select-filter-course">
+              <SelectValue placeholder="Filtrar por curso..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los cursos</SelectItem>
+              {courses.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
         </div>
-      ) : students && students.length > 0 ? (
+      ) : filteredStudents && filteredStudents.length > 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-3"
         >
-          {students.map(s => {
+          {filteredStudents.map(s => {
             const course = courses?.find(c => c.id === s.courseId);
             return (
               <Card key={s.id} className="hover-elevate" data-testid={`student-card-${s.id}`}>
@@ -174,8 +197,12 @@ export default function StudentsPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <Users className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No hay alumnos matriculados</p>
-            <p className="text-xs text-muted-foreground mt-1">Crea tu primer alumno para empezar</p>
+            <p className="text-muted-foreground">
+              {filterCourseId !== "all" ? "No hay alumnos en este curso" : "No hay alumnos matriculados"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {filterCourseId !== "all" ? "Los alumnos se pueden matricular usando el codigo de matriculacion del curso" : "Crea tu primer alumno para empezar"}
+            </p>
           </CardContent>
         </Card>
       )}
