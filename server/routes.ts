@@ -29,7 +29,7 @@ export async function registerRoutes(
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: isProduction,
+        secure: isProduction && process.env.FORCE_HTTP !== "true",
         httpOnly: true,
         sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,

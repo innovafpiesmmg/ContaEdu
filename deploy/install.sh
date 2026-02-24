@@ -156,11 +156,18 @@ else
 fi
 log_ok "Código fuente descargado desde GitHub"
 
+if [[ -n "$DOMAIN" ]]; then
+  FORCE_HTTP="false"
+else
+  FORCE_HTTP="true"
+fi
+
 cat > "${APP_DIR}/.env" << ENVEOF
 DATABASE_URL=${DATABASE_URL}
 SESSION_SECRET=${SESSION_SECRET}
 NODE_ENV=production
 PORT=${PORT}
+FORCE_HTTP=${FORCE_HTTP}
 ENVEOF
 
 chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}"
