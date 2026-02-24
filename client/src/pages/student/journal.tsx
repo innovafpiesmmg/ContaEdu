@@ -40,15 +40,23 @@ export default function JournalPage() {
 
   const createMutation = useMutation({
     mutationFn: () => {
-      const validLines = lines.filter(l => l.accountCode && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0));
+      const validLines = lines.filter(l => {
+        if (!l.accountCode) return false;
+        const d = parseFloat(l.debit) || 0;
+        const c = parseFloat(l.credit) || 0;
+        return d > 0 || c > 0;
+      });
+      if (validLines.length < 2) {
+        throw new Error("El asiento debe tener al menos 2 líneas con importes");
+      }
       return apiRequest("POST", "/api/journal-entries", {
         date,
         description,
         lines: validLines.map(l => ({
           accountCode: l.accountCode,
-          accountName: l.accountName,
-          debit: l.debit || "0",
-          credit: l.credit || "0",
+          accountName: l.accountName || l.accountCode,
+          debit: String(parseFloat(l.debit) || 0),
+          credit: String(parseFloat(l.credit) || 0),
         })),
       });
     },
@@ -159,7 +167,7 @@ export default function JournalPage() {
                       data-testid={`input-line-code-${i}`}
                       value={line.accountCode}
                       onChange={e => updateLine(i, "accountCode", e.target.value)}
-                      placeholder="430"
+                      placeholder="Código"
                       className="font-mono text-sm"
                       list="account-codes"
                     />
@@ -167,7 +175,7 @@ export default function JournalPage() {
                       data-testid={`input-line-name-${i}`}
                       value={line.accountName}
                       onChange={e => updateLine(i, "accountName", e.target.value)}
-                      placeholder="Nombre de cuenta"
+                      placeholder="Selecciona cuenta"
                       className="text-sm"
                     />
                     <Input
