@@ -27,7 +27,7 @@ export async function registerRoutes(
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: "auto",
+        secure: false,
         httpOnly: true,
         sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
@@ -63,8 +63,11 @@ export async function registerRoutes(
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) return res.status(401).json({ message: "Usuario o contraseña incorrectos" });
       req.session.userId = user.id;
-      const { password: _, ...safe } = user;
-      res.json(safe);
+      req.session.save((err: any) => {
+        if (err) return res.status(500).json({ message: "Error al guardar sesión" });
+        const { password: _, ...safe } = user;
+        res.json(safe);
+      });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
