@@ -16,6 +16,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+import heroClassroom from "@/assets/images/hero-classroom.jpg";
+import teacherStudent from "@/assets/images/teacher-student.jpg";
+import studentAccounting from "@/assets/images/student-accounting.jpg";
+import studentsCollaboration from "@/assets/images/students-collaboration.jpg";
+
 interface LandingPageProps {
   onGoToLogin: () => void;
 }
@@ -131,40 +136,69 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
       </header>
 
-      <section className="relative z-10 pt-20 pb-24 sm:pt-28 sm:pb-32">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <GraduationCap className="w-4 h-4" />
-            CFGM / CFGS — Formación Profesional
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight max-w-3xl mx-auto">
-            Aprende contabilidad{" "}
-            <span className="text-primary">practicando</span>
-          </h1>
-          <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Simulador contable educativo con el Plan General de Contabilidad.
-            Libro Diario, Libro Mayor y Balance de Comprobación en un entorno real y guiado.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button size="lg" onClick={onGoToLogin} className="text-base px-8" data-testid="button-hero-login">
-              Empezar ahora
-              <ArrowRight className="w-5 h-5 ml-1" />
-            </Button>
-            <Button size="lg" variant="outline" className="text-base px-8" asChild>
-              <a href="#features" data-testid="link-hero-features">
-                Ver funcionalidades
-              </a>
-            </Button>
+      <section className="relative z-10 pt-16 pb-20 sm:pt-20 sm:pb-28">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <GraduationCap className="w-4 h-4" />
+                CFGM / CFGS — Formación Profesional
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+                Aprende contabilidad{" "}
+                <span className="text-primary">practicando</span>
+              </h1>
+              <p className="mt-6 text-lg sm:text-xl text-muted-foreground leading-relaxed">
+                Simulador contable educativo con el Plan General de Contabilidad.
+                Libro Diario, Libro Mayor y Balance de Comprobación en un entorno real y guiado.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row items-start gap-3">
+                <Button size="lg" onClick={onGoToLogin} className="text-base px-8" data-testid="button-hero-login">
+                  Empezar ahora
+                  <ArrowRight className="w-5 h-5 ml-1" />
+                </Button>
+                <Button size="lg" variant="outline" className="text-base px-8" asChild>
+                  <a href="#features" data-testid="link-hero-features">
+                    Ver funcionalidades
+                  </a>
+                </Button>
+              </div>
+            </div>
+
+            <div className="relative hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border">
+                <img
+                  src={heroClassroom}
+                  alt="Estudiantes en aula moderna"
+                  className="w-full h-[400px] object-cover"
+                  data-testid="img-hero"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/90 flex items-center justify-center">
+                      <BookOpenCheck className="w-5 h-5 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Entorno real de práctica</p>
+                      <p className="text-xs text-muted-foreground">Plan General de Contabilidad</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-primary/10 rounded-2xl -z-10" />
+              <div className="absolute -top-4 -right-4 w-32 h-32 bg-chart-2/10 rounded-2xl -z-10" />
+            </div>
           </div>
 
-          <div className="mt-16 sm:mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
+          <div className="mt-16 sm:mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto lg:mx-0 lg:max-w-full">
             {[
               { value: "60+", label: "Cuentas PGC" },
               { value: "3", label: "Roles de usuario" },
               { value: "IVA", label: "e IGIC" },
               { value: "100%", label: "En español" },
             ].map((stat, i) => (
-              <div key={i} className="text-center">
+              <div key={i} className="text-center p-4 rounded-xl bg-card/50 border">
                 <div className="text-2xl sm:text-3xl font-bold text-primary">{stat.value}</div>
                 <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
               </div>
@@ -175,24 +209,49 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
 
       <section id="features" className="relative z-10 py-20 sm:py-24 bg-muted/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Todo lo que necesitas</h2>
-            <p className="mt-3 text-muted-foreground text-lg max-w-xl mx-auto">
-              Herramientas contables reales adaptadas al aula de Formación Profesional
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, i) => (
-              <Card key={i} className="border bg-card/80 backdrop-blur-sm hover:border-primary/20 transition-colors">
-                <CardContent className="p-6">
-                  <div className={`w-11 h-11 rounded-xl ${f.bg} flex items-center justify-center mb-4`}>
-                    <f.icon className={`w-5 h-5 ${f.color}`} />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{f.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid lg:grid-cols-5 gap-12 items-start">
+            <div className="lg:col-span-3">
+              <div className="text-left mb-10">
+                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Todo lo que necesitas</h2>
+                <p className="mt-3 text-muted-foreground text-lg max-w-xl">
+                  Herramientas contables reales adaptadas al aula de Formación Profesional
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-5">
+                {features.map((f, i) => (
+                  <Card key={i} className="border bg-card/80 backdrop-blur-sm hover:border-primary/20 transition-colors">
+                    <CardContent className="p-6">
+                      <div className={`w-11 h-11 rounded-xl ${f.bg} flex items-center justify-center mb-4`}>
+                        <f.icon className={`w-5 h-5 ${f.color}`} />
+                      </div>
+                      <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{f.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 hidden lg:block">
+              <div className="sticky top-24 space-y-5">
+                <div className="rounded-2xl overflow-hidden shadow-lg border">
+                  <img
+                    src={studentAccounting}
+                    alt="Alumna trabajando con contabilidad"
+                    className="w-full h-[260px] object-cover"
+                    data-testid="img-features-1"
+                  />
+                </div>
+                <div className="rounded-2xl overflow-hidden shadow-lg border">
+                  <img
+                    src={teacherStudent}
+                    alt="Profesor ayudando a alumno"
+                    className="w-full h-[260px] object-cover"
+                    data-testid="img-features-2"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -263,24 +322,35 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
       </section>
 
-      <section className="relative z-10 py-20 sm:py-24">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              ¿Listo para practicar?
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Accede con tus credenciales y empieza a registrar asientos contables como un profesional.
-            </p>
-            <Button size="lg" onClick={onGoToLogin} className="mt-8 text-base px-10" data-testid="button-cta-login">
-              Acceder a ContaEdu
-              <ArrowRight className="w-5 h-5 ml-1" />
-            </Button>
+      <section className="relative z-10 py-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="relative rounded-2xl overflow-hidden">
+            <img
+              src={studentsCollaboration}
+              alt="Estudiantes colaborando"
+              className="w-full h-[320px] sm:h-[380px] object-cover"
+              data-testid="img-cta"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/40" />
+            <div className="absolute inset-0 flex items-center">
+              <div className="px-8 sm:px-12 max-w-xl">
+                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                  ¿Listo para practicar?
+                </h2>
+                <p className="mt-4 text-lg text-muted-foreground">
+                  Accede con tus credenciales y empieza a registrar asientos contables como un profesional.
+                </p>
+                <Button size="lg" onClick={onGoToLogin} className="mt-6 text-base px-10" data-testid="button-cta-login">
+                  Acceder a ContaEdu
+                  <ArrowRight className="w-5 h-5 ml-1" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="relative z-10 border-t py-8">
+      <footer className="relative z-10 border-t py-8 mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
