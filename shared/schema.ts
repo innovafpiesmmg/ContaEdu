@@ -8,6 +8,7 @@ export const taxRegimeEnum = pgEnum("tax_regime", ["iva", "igic"]);
 export const exerciseTypeEnum = pgEnum("exercise_type", ["guided", "practice"]);
 export const accountTypeEnum = pgEnum("account_type", ["asset", "liability", "equity", "income", "expense"]);
 export const examStatusEnum = pgEnum("exam_status", ["not_started", "in_progress", "submitted", "expired"]);
+export const submissionStatusEnum = pgEnum("submission_status", ["in_progress", "submitted", "reviewed"]);
 
 export const schoolYears = pgTable("school_years", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -99,6 +100,18 @@ export const examAttempts = pgTable("exam_attempts", {
   status: examStatusEnum("status").notNull().default("not_started"),
 });
 
+export const exerciseSubmissions = pgTable("exercise_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  exerciseId: varchar("exercise_id").notNull(),
+  studentId: varchar("student_id").notNull(),
+  status: submissionStatusEnum("status").notNull().default("in_progress"),
+  submittedAt: text("submitted_at"),
+  grade: decimal("grade", { precision: 5, scale: 2 }),
+  feedback: text("feedback"),
+  reviewedAt: text("reviewed_at"),
+  reviewedBy: varchar("reviewed_by"),
+});
+
 // Insert schemas
 export const insertSchoolYearSchema = createInsertSchema(schoolYears).omit({ id: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
@@ -109,6 +122,7 @@ export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit(
 export const insertJournalLineSchema = createInsertSchema(journalLines).omit({ id: true });
 export const insertExamSchema = createInsertSchema(exams).omit({ id: true });
 export const insertExamAttemptSchema = createInsertSchema(examAttempts).omit({ id: true });
+export const insertExerciseSubmissionSchema = createInsertSchema(exerciseSubmissions).omit({ id: true });
 
 // Types
 export type SchoolYear = typeof schoolYears.$inferSelect;
@@ -130,6 +144,8 @@ export type Exam = typeof exams.$inferSelect;
 export type InsertExam = z.infer<typeof insertExamSchema>;
 export type ExamAttempt = typeof examAttempts.$inferSelect;
 export type InsertExamAttempt = z.infer<typeof insertExamAttemptSchema>;
+export type ExerciseSubmission = typeof exerciseSubmissions.$inferSelect;
+export type InsertExerciseSubmission = z.infer<typeof insertExerciseSubmissionSchema>;
 
 // Login schema
 export const loginSchema = z.object({

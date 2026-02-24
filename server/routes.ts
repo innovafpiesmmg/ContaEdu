@@ -459,6 +459,67 @@ export async function registerRoutes(
     res.json(balance);
   });
 
+  // Exercise submissions - Student marks exercise as finished
+  app.get("/api/submissions", requireAuth, async (req: any, res) => {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "No autenticado" });
+    if (user.role === "student") {
+      const subs = await storage.getExerciseSubmissionsByStudent(user.id);
+      res.json(subs);
+    } else {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/submissions/exercise/:exerciseId", requireAuth, async (req: any, res) => {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "No autenticado" });
+    if (user.role === "teacher") {
+      const subs = await storage.getExerciseSubmissionsByExercise(req.params.exerciseId);
+      const enriched = [];
+      for (const s of subs) {
+        const student = await storage.getUser(s.studentId);
+        enriched.push({ ...s, studentName: student?.fullName || "Desconocido", studentUsername: student?.username || "" });
+      }
+      res.json(enriched);
+    } else if (user.role === "student") {
+      const sub = await storage.getExerciseSubmission(req.params.exerciseId, user.id);
+      res.json(sub ? [sub] : []);
+    } else {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/submissions/:exerciseId/submit", requireRole("student"), async (req: any, res) => {
+    try {
+      const exercise = await storage.getExercises();
+      const ex = exercise.find(e => e.id === req.params.exerciseId);
+      if (!ex) return res.status(404).json({ message: "Ejercicio no encontrado" });
+      if (ex.courseId !== req.user.courseId) return res.status(403).json({ message: "Sin acceso a este ejercicio" });
+
+      const existing = await storage.getExerciseSubmission(req.params.exerciseId, req.user.id);
+      if (existing && (existing.status === "submitted" || existing.status === "reviewed")) {
+        return res.status(400).json({ message: "Este ejercicio ya ha sido entregado" });
+      }
+
+      const sub = await storage.submitExercise(req.params.exerciseId, req.user.id);
+      res.json(sub);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/submissions/:id/review", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const { feedback, grade } = req.body;
+      if (!feedback) return res.status(400).json({ message: "La retroalimentacion es obligatoria" });
+      const updated = await storage.reviewExercise(req.params.id, feedback, grade || null, req.user.id);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   // Exams - Teacher management
   app.get("/api/exams", requireAuth, async (req: any, res) => {
     const user = await storage.getUser(req.session.userId);

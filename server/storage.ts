@@ -2,7 +2,7 @@ import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import {
   users, schoolYears, systemConfig, courses, accounts, exercises,
-  journalEntries, journalLines, exams, examAttempts,
+  journalEntries, journalLines, exams, examAttempts, exerciseSubmissions,
   type User, type InsertUser,
   type SchoolYear, type InsertSchoolYear,
   type SystemConfig,
@@ -13,6 +13,7 @@ import {
   type JournalLine, type InsertJournalLine,
   type Exam, type InsertExam,
   type ExamAttempt, type InsertExamAttempt,
+  type ExerciseSubmission, type InsertExerciseSubmission,
 } from "@shared/schema";
 
 function generateEnrollmentCode(): string {
@@ -78,6 +79,13 @@ export interface IStorage {
   getExamAttemptsByExam(examId: string): Promise<ExamAttempt[]>;
   createExamAttempt(attempt: InsertExamAttempt): Promise<ExamAttempt>;
   submitExamAttempt(id: string): Promise<ExamAttempt>;
+
+  getExerciseSubmission(exerciseId: string, studentId: string): Promise<ExerciseSubmission | undefined>;
+  getExerciseSubmissionsByExercise(exerciseId: string): Promise<ExerciseSubmission[]>;
+  getExerciseSubmissionsByStudent(studentId: string): Promise<ExerciseSubmission[]>;
+  createOrUpdateSubmission(data: InsertExerciseSubmission): Promise<ExerciseSubmission>;
+  submitExercise(exerciseId: string, studentId: string): Promise<ExerciseSubmission>;
+  reviewExercise(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExerciseSubmission>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -375,6 +383,61 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(examAttempts)
       .set({ submittedAt: new Date().toISOString(), status: "submitted" as any })
       .where(eq(examAttempts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getExerciseSubmission(exerciseId: string, studentId: string): Promise<ExerciseSubmission | undefined> {
+    const [sub] = await db.select().from(exerciseSubmissions)
+      .where(and(eq(exerciseSubmissions.exerciseId, exerciseId), eq(exerciseSubmissions.studentId, studentId)));
+    return sub;
+  }
+
+  async getExerciseSubmissionsByExercise(exerciseId: string): Promise<ExerciseSubmission[]> {
+    return db.select().from(exerciseSubmissions).where(eq(exerciseSubmissions.exerciseId, exerciseId));
+  }
+
+  async getExerciseSubmissionsByStudent(studentId: string): Promise<ExerciseSubmission[]> {
+    return db.select().from(exerciseSubmissions).where(eq(exerciseSubmissions.studentId, studentId));
+  }
+
+  async createOrUpdateSubmission(data: InsertExerciseSubmission): Promise<ExerciseSubmission> {
+    const existing = await this.getExerciseSubmission(data.exerciseId, data.studentId);
+    if (existing) {
+      return existing;
+    }
+    const [created] = await db.insert(exerciseSubmissions).values(data).returning();
+    return created;
+  }
+
+  async submitExercise(exerciseId: string, studentId: string): Promise<ExerciseSubmission> {
+    const existing = await this.getExerciseSubmission(exerciseId, studentId);
+    if (existing) {
+      const [updated] = await db.update(exerciseSubmissions)
+        .set({ status: "submitted" as any, submittedAt: new Date().toISOString() })
+        .where(eq(exerciseSubmissions.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(exerciseSubmissions).values({
+      exerciseId,
+      studentId,
+      status: "submitted" as any,
+      submittedAt: new Date().toISOString(),
+    }).returning();
+    return created;
+  }
+
+  async reviewExercise(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExerciseSubmission> {
+    const [updated] = await db.update(exerciseSubmissions)
+      .set({
+        feedback,
+        grade,
+        status: "reviewed" as any,
+        reviewedAt: new Date().toISOString(),
+        reviewedBy,
+      })
+      .where(eq(exerciseSubmissions.id, id))
       .returning();
     return updated;
   }
