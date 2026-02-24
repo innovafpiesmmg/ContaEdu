@@ -283,8 +283,10 @@ export async function registerRoutes(
   app.post("/api/journal-entries", requireRole("student"), async (req: any, res) => {
     try {
       const { date, description, lines } = req.body;
-      if (!date || !description || !lines || lines.length < 2) {
-        return res.status(400).json({ message: "El asiento debe tener al menos 2 líneas" });
+      if (!date || !description || !lines || !Array.isArray(lines) || lines.length < 2) {
+        return res.status(400).json({ 
+          message: `El asiento debe tener al menos 2 líneas (recibidas: ${Array.isArray(lines) ? lines.length : 0})` 
+        });
       }
 
       const totalDebit = lines.reduce((s: number, l: any) => s + parseFloat(l.debit || 0), 0);

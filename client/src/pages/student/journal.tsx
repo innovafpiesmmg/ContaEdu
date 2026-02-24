@@ -40,7 +40,7 @@ export default function JournalPage() {
 
   const createMutation = useMutation({
     mutationFn: () => {
-      const validLines = lines.filter(l => l.accountCode && (l.debit || l.credit));
+      const validLines = lines.filter(l => l.accountCode && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0));
       return apiRequest("POST", "/api/journal-entries", {
         date,
         description,
