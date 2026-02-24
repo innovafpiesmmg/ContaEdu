@@ -551,8 +551,8 @@ export async function registerRoutes(
     }
   });
 
-  // Exercise documents (PDF uploads)
-  app.use("/uploads/documents", express.static(UPLOADS_DIR));
+  // Exercise documents (PDF uploads) - require authentication to access files
+  app.use("/uploads/documents", requireAuth, express.static(UPLOADS_DIR));
 
   app.get("/api/exercises/:id/documents", requireAuth, async (req: any, res) => {
     const docs = await storage.getExerciseDocuments(req.params.id);
