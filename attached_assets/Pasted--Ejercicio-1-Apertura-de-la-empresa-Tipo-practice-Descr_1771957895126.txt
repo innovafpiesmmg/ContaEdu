@@ -1,0 +1,386 @@
+# Ejercicio 1: Apertura de la empresa
+
+**Tipo:** practice
+
+## Descripción
+La empresa "Nueva Era S.L." inicia su actividad con los siguientes elementos:
+- Dinero en bancos: 50.000 EUR.
+- Mobiliario de oficina: 5.000 EUR.
+- Elementos de transporte: 20.000 EUR.
+- Capital social: A determinar por diferencia.
+
+## Solución
+
+### Asiento 1: Apertura
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 50.000,00 | |
+| 216 Mobiliario | 5.000,00 | |
+| 218 Elementos de transporte | 20.000,00 | |
+| 100 Capital Social | | 75.000,00 |
+
+---
+
+# Ejercicio 2: Compra de mercaderías con descuento comercial
+
+**Tipo:** practice
+
+## Descripción
+Se compran mercaderías por valor de 3.000 EUR. El proveedor incluye en factura un descuento comercial del 5%. IVA 21%. Pago a crédito.
+
+## Solución
+
+### Asiento 1: Compra con descuento
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías (2.850 netos) | 2.850,00 | |
+| 472 H.P. IVA soportado | 598,50 | |
+| 400 Proveedores | | 3.448,50 |
+
+---
+
+# Ejercicio 3: Venta de mercaderías con anticipo de cliente
+
+**Tipo:** guided
+
+## Descripción
+1. Un cliente nos entrega 500 EUR (IVA 21% incluido) por transferencia bancaria como reserva de pedido.
+2. Realizamos la venta total por 2.000 EUR + IVA 21%, aplicando el anticipo.
+
+## Solución
+
+### Asiento 1: Cobro del anticipo
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 500,00 | |
+| 438 Anticipos de clientes | | 413,22 |
+| 477 H.P. IVA repercutido | | 86,78 |
+
+### Asiento 2: Factura de venta final
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 1.920,00 | |
+| 438 Anticipos de clientes | 413,22 | |
+| 700 Ventas de mercaderías | | 2.000,00 |
+| 477 H.P. IVA repercutido (sobre 1.586,78) | | 333,22 |
+
+---
+
+# Ejercicio 4: Gastos de transporte de compras
+
+**Tipo:** practice
+
+## Descripción
+Pagamos en efectivo 100 EUR + IVA 21% a una agencia de transportes por traer las mercaderías del ejercicio anterior.
+
+## Solución
+
+### Asiento 1: Gasto de transporte
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías (o 624) | 100,00 | |
+| 472 H.P. IVA soportado | 21,00 | |
+| 570 Caja | | 121,00 |
+
+---
+
+# Ejercicio 5: Devolución de compras
+
+**Tipo:** practice
+
+## Descripción
+Devolvemos al proveedor mercaderías en mal estado por valor de 400 EUR + IVA 21%. El proveedor nos envía factura rectificativa.
+
+## Solución
+
+### Asiento 1: Devolución a proveedores
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 400 Proveedores | 484,00 | |
+| 608 Devoluciones de compras | | 400,00 |
+| 472 H.P. IVA soportado (ajuste) | | 84,00 |
+
+---
+
+# Ejercicio 6: Suministros (Luz y Agua)
+
+**Tipo:** practice
+
+## Descripción
+Recibimos y pagamos por banco el recibo de la luz: Base imponible 150 EUR + IVA 21%.
+
+## Solución
+
+### Asiento 1: Pago de suministros
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 628 Suministros | 150,00 | |
+| 472 H.P. IVA soportado | 31,50 | |
+| 572 Bancos | | 181,50 |
+
+---
+
+# Ejercicio 7: Arrendamientos con retención
+
+**Tipo:** guided
+
+## Descripción
+Recibimos la factura del alquiler del local: 1.000 EUR + IVA 21%. Retención del IRPF aplicada del 19%. Se paga por banco.
+
+## Solución
+
+### Asiento 1: Gasto de alquiler
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 621 Arrendamientos y cánones | 1.000,00 | |
+| 472 H.P. IVA soportado | 210,00 | |
+| 4751 H.P. Acreedora por retenciones | | 190,00 |
+| 572 Bancos | | 1.020,00 |
+
+---
+
+# Ejercicio 8: Servicios de profesionales independientes
+
+**Tipo:** practice
+
+## Descripción
+Un abogado nos envía factura por asesoramiento: 300 EUR + IVA 21% - Retención 15%. Queda pendiente de pago.
+
+## Solución
+
+### Asiento 1: Honorarios profesionales
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 623 Serv. profesionales indep. | 300,00 | |
+| 472 H.P. IVA soportado | 63,00 | |
+| 4751 H.P. Acreedora por retenciones | | 45,00 |
+| 410 Acreedores por prestación serv. | | 318,00 |
+
+---
+
+# Ejercicio 9: Adquisición de Inmovilizado (Maquinaria)
+
+**Tipo:** practice
+
+## Descripción
+Compramos una máquina por 10.000 EUR + IVA 21%. Pagamos 2.000 por banco y el resto a pagar en 15 meses.
+
+## Solución
+
+### Asiento 1: Compra de maquinaria
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 213 Maquinaria | 10.000,00 | |
+| 472 H.P. IVA soportado | 2.100,00 | |
+| 572 Bancos | | 2.000,00 |
+| 173 Proveedores inmovilizado L/P | | 10.100,00 |
+
+---
+
+# Ejercicio 10: Amortización del inmovilizado
+
+**Tipo:** practice
+
+## Descripción
+A final de año, amortizamos el mobiliario (5.000 EUR) estimando una vida útil de 10 años (sistema lineal).
+
+## Solución
+
+### Asiento 1: Cuota de amortización
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 681 Amortización del I. Material | 500,00 | |
+| 281 Amortización acumulada I.M. | | 500,00 |
+
+---
+
+# Ejercicio 11: Reparaciones y conservación
+
+**Tipo:** practice
+
+## Descripción
+Se estropea la cerradura de la oficina. El cerrajero nos cobra 80 EUR + IVA 21%, pagados en efectivo.
+
+## Solución
+
+### Asiento 1: Gasto de reparación
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 622 Reparaciones y conservación | 80,00 | |
+| 472 H.P. IVA soportado | 16,80 | |
+| 570 Caja | | 96,80 |
+
+---
+
+# Ejercicio 12: Préstamo bancario (Concesión)
+
+**Tipo:** guided
+
+## Descripción
+El banco nos concede un préstamo de 12.000 EUR a devolver íntegramente en 6 meses. Ingreso en cuenta corriente.
+
+## Solución
+
+### Asiento 1: Entrada del préstamo
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 12.000,00 | |
+| 520 Deudas a C/P ent. crédito | | 12.000,00 |
+
+---
+
+# Ejercicio 13: Pago de intereses de préstamo
+
+**Tipo:** practice
+
+## Descripción
+Pagamos la primera cuota de intereses del préstamo anterior por valor de 100 EUR.
+
+## Solución
+
+### Asiento 1: Intereses de deuda
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 662 Intereses de deudas | 100,00 | |
+| 572 Bancos | | 100,00 |
+
+---
+
+# Ejercicio 14: Seguros anuales
+
+**Tipo:** practice
+
+## Descripción
+Pagamos la prima anual del seguro de la furgoneta por 450 EUR mediante transferencia (Operación exenta de IVA).
+
+## Solución
+
+### Asiento 1: Prima de seguro
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 625 Primas de seguros | 450,00 | |
+| 572 Bancos | | 450,00 |
+
+---
+
+# Ejercicio 15: Publicidad y Propaganda
+
+**Tipo:** practice
+
+## Descripción
+Contratamos una campaña en redes sociales por 200 EUR + IVA 21%. Se paga a 30 días.
+
+## Solución
+
+### Asiento 1: Gasto publicitario
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 627 Publicidad, prop. y RR.PP. | 200,00 | |
+| 472 H.P. IVA soportado | 42,00 | |
+| 410 Acreedores por prestación serv. | | 242,00 |
+
+---
+
+# Ejercicio 16: Nóminas de personal
+
+**Tipo:** guided
+
+## Descripción
+Contabilizar el devengo de la nómina:
+- Sueldo bruto: 1.800 EUR.
+- S.S. a cargo trabajador: 110 EUR.
+- Retención IRPF: 200 EUR.
+- S.S. a cargo empresa: 550 EUR.
+- Pago por banco.
+
+## Solución
+
+### Asiento 1: Nómina y Seguros Sociales
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 640 Sueldos y salarios | 1.800,00 | |
+| 642 Seguridad Social empresa | 550,00 | |
+| 476 Organismos S.S. acreedores (110+550) | | 660,00 |
+| 4751 H.P. acreedora por retenciones | | 200,00 |
+| 572 Bancos (Neto: 1800-110-200) | | 1.490,00 |
+
+---
+
+# Ejercicio 17: Variación de existencias
+
+**Tipo:** practice
+
+## Descripción
+Al cierre del ejercicio, las existencias finales de mercaderías son de 2.000 EUR. No había existencias iniciales.
+
+## Solución
+
+### Asiento 1: Regularización de existencias
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 300 Mercaderías | 2.000,00 | |
+| 610 Variación de existencias | | 2.000,00 |
+
+---
+
+# Ejercicio 18: Liquidación del IVA
+
+**Tipo:** guided
+
+## Descripción
+Liquidamos el IVA del trimestre sabiendo que el IVA Soportado (472) suma 4.500 EUR y el IVA Repercutido (477) suma 6.000 EUR.
+
+## Solución
+
+### Asiento 1: Liquidación IVA
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 477 H.P. IVA repercutido | 6.000,00 | |
+| 472 H.P. IVA soportado | | 4.500,00 |
+| 4750 H.P. acreedora por IVA | | 1.500,00 |
+
+---
+
+# Ejercicio 19: Deterioro de créditos comerciales
+
+**Tipo:** practice
+
+## Descripción
+Un cliente que nos debe 1.000 EUR es declarado en concurso de acreedores. Pasamos la deuda a "dudoso cobro" y registramos el deterioro.
+
+## Solución
+
+### Asiento 1: Clasificación como dudoso
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 436 Clientes de dudoso cobro | 1.000,00 | |
+| 430 Clientes | | 1.000,00 |
+
+### Asiento 2: Registro del deterioro
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 694 Pérdidas por det. créd. oper. | 1.000,00 | |
+| 490 Deterioro de valor de créditos | | 1.000,00 |
+
+---
+
+# Ejercicio 20: Regularización de Gastos e Ingresos
+
+**Tipo:** practice
+
+## Descripción
+Cerrar las cuentas de gestión suponiendo que solo tenemos: Ventas (700) por 10.000 EUR y Compras (600) por 4.000 EUR.
+
+## Solución
+
+### Asiento 1: Saldo deudores a PyG
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 129 Resultado del ejercicio | 4.000,00 | |
+| 600 Compras de mercaderías | | 4.000,00 |
+
+### Asiento 2: Saldo acreedores a PyG
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 700 Ventas de mercaderías | 10.000,00 | |
+| 129 Resultado del ejercicio | | 10.000,00 |

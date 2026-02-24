@@ -23,63 +23,40 @@ interface SubmissionWithStudent extends ExerciseSubmission {
 }
 
 function generateExerciseTemplate(): string {
-  return `# Ejercicio 1: Operaciones de compraventa con IVA
+  return `# Ejercicio: Operaciones básicas de compraventa
 
 **Tipo:** practice
 
 ## Descripción
-La empresa TextilSur S.L. realiza las siguientes operaciones durante el mes de marzo:
+Contabiliza las siguientes operaciones de la empresa "TextilSur S.L.":
 
-1. Compra mercaderías al proveedor Hilaturas del Norte por 5.000 EUR + IVA 21%. Pago a 30 días.
-2. Vende productos al cliente Modas López por 8.000 EUR + IVA 21%. Cobro a 60 días.
-3. El cliente Modas López paga la factura mediante transferencia bancaria.
-
-Registrar todos los asientos contables correspondientes.
+1. Compra mercaderías por 3.000 EUR + IVA 21%. Pago a crédito.
+2. Un cliente entrega anticipo de 500 EUR (IVA incluido) por transferencia.
+3. Venta por 2.000 EUR + IVA 21%, aplicando el anticipo anterior.
 
 ## Solución
 
 ### Asiento 1: Compra de mercaderías
-Fecha: 2024-03-05
-
 | Cuenta | Debe | Haber |
 |--------|------|-------|
-| 600 Compras de mercaderías | 5.000,00 | |
-| 472 H.P. IVA soportado | 1.050,00 | |
-| 400 Proveedores | | 6.050,00 |
+| 600 Compras de mercaderías | 3.000,00 | |
+| 472 H.P. IVA soportado | 630,00 | |
+| 400 Proveedores | | 3.630,00 |
 
-### Asiento 2: Venta de productos
-Fecha: 2024-03-10
-
+### Asiento 2: Cobro del anticipo
 | Cuenta | Debe | Haber |
 |--------|------|-------|
-| 430 Clientes | 9.680,00 | |
-| 700 Ventas de mercaderías | | 8.000,00 |
-| 477 H.P. IVA repercutido | | 1.680,00 |
+| 572 Bancos | 500,00 | |
+| 438 Anticipos de clientes | | 413,22 |
+| 477 H.P. IVA repercutido | | 86,78 |
 
-### Asiento 3: Cobro del cliente
-Fecha: 2024-03-20
-
+### Asiento 3: Factura de venta con anticipo
 | Cuenta | Debe | Haber |
 |--------|------|-------|
-| 572 Bancos | 9.680,00 | |
-| 430 Clientes | | 9.680,00 |
-
-# Ejercicio 2: Ciclo contable de nóminas
-
-**Tipo:** guided
-
-## Descripción
-La empresa ServiPlus S.L. debe contabilizar las nóminas del mes de enero con los siguientes datos:
-
-Trabajador A:
-- Sueldo bruto: 2.000 EUR
-- Seguridad Social trabajador: 127 EUR
-- Retención IRPF: 300 EUR
-- Seguridad Social empresa: 600 EUR
-
-Registrar:
-1. El devengo de las nóminas
-2. El pago de los salarios netos por banco
+| 430 Clientes | 1.920,00 | |
+| 438 Anticipos de clientes | 413,22 | |
+| 700 Ventas de mercaderías | | 2.000,00 |
+| 477 H.P. IVA repercutido | | 333,22 |
 `;
 }
 
@@ -887,7 +864,7 @@ export default function ExercisesPage() {
                 data-testid="textarea-import-exercises"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Ejercicio 1: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción con las operaciones a contabilizar:\n1. Primera operación...\n2. Segunda operación...\n\n## Solución\n\n### Asiento 1: Descripción\nFecha: 2024-01-15\n\n| Cuenta | Debe | Haber |\n|--------|------|-------|\n| 600 Compras | 1.000,00 | |\n| 400 Proveedores | | 1.000,00 |`}
+                placeholder={`# Ejercicio: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nContabiliza las siguientes operaciones:\n1. Primera operación...\n2. Segunda operación...\n\n## Solución\n\n### Asiento 1: Primera operación\n| Cuenta | Debe | Haber |\n|--------|------|-------|\n| 600 Compras | 1.000,00 | |\n| 400 Proveedores | | 1.000,00 |\n\n### Asiento 2: Segunda operación\n| Cuenta | Debe | Haber |\n|--------|------|-------|\n| 430 Clientes | 2.000,00 | |\n| 700 Ventas | | 2.000,00 |`}
                 className="font-mono text-xs"
                 rows={12}
               />
