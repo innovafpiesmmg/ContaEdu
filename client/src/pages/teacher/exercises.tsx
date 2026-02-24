@@ -72,11 +72,13 @@ interface SolutionEntry {
   date: string;
   description: string;
   lines: SolutionLine[];
+  points?: number;
 }
 
 function generateSolutionTemplate(): string {
   return `## Asiento 1: Compra de mercaderías
 Fecha: 2024-01-15
+**Puntos:** 3
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -86,6 +88,7 @@ Fecha: 2024-01-15
 
 ## Asiento 2: Venta de productos
 Fecha: 2024-01-20
+**Puntos:** 3
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -95,6 +98,7 @@ Fecha: 2024-01-20
 
 ## Asiento 3: Cobro del cliente
 Fecha: 2024-02-15
+**Puntos:** 4
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -116,6 +120,8 @@ function parseSolutionMD(md: string): SolutionEntry[] {
     const description = headerMatch[2].trim();
     const dateMatch = block.match(/Fecha:\s*(\S+)/i);
     const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
+    const pointsMatch = block.match(/\*\*Puntos:\*\*\s*([\d.,]+)/i);
+    const points = pointsMatch ? parseFloat(pointsMatch[1].replace(",", ".")) : undefined;
 
     const lines: SolutionLine[] = [];
     const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
@@ -146,7 +152,7 @@ function parseSolutionMD(md: string): SolutionEntry[] {
     }
 
     if (lines.length >= 2) {
-      entries.push({ entryNumber, date, description, lines });
+      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}) });
     }
   }
 
@@ -165,6 +171,8 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
     const description = headerMatch[2].trim();
     const dateMatch = block.match(/Fecha:\s*(\S+)/i);
     const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
+    const pointsMatch = block.match(/\*\*Puntos:\*\*\s*([\d.,]+)/i);
+    const points = pointsMatch ? parseFloat(pointsMatch[1].replace(",", ".")) : undefined;
 
     const lines: SolutionLine[] = [];
     const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
@@ -195,7 +203,7 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
     }
 
     if (lines.length >= 2) {
-      entries.push({ entryNumber, date, description, lines });
+      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}) });
     }
   }
 
@@ -987,13 +995,16 @@ export default function ExercisesPage() {
 
             {solutionPreview.length > 0 && (
               <div className="space-y-2">
-                <Label>Vista previa ({solutionPreview.length} asiento{solutionPreview.length !== 1 ? "s" : ""} detectado{solutionPreview.length !== 1 ? "s" : ""})</Label>
+                <Label>Vista previa ({solutionPreview.length} asiento{solutionPreview.length !== 1 ? "s" : ""} detectado{solutionPreview.length !== 1 ? "s" : ""}{(() => { const tp = solutionPreview.reduce((s, e) => s + (e.points || 0), 0); return tp > 0 ? ` · ${tp} pts total` : ""; })()})</Label>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {solutionPreview.map((entry, i) => (
                     <div key={i} className="bg-muted/50 rounded-md px-3 py-2 text-sm" data-testid={`preview-solution-entry-${i}`}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium">Asiento {entry.entryNumber}: {entry.description}</span>
                         <span className="text-xs text-muted-foreground">{entry.date}</span>
+                        {entry.points !== undefined && (
+                          <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300">{entry.points} pts</Badge>
+                        )}
                       </div>
                       <table className="w-full text-xs">
                         <thead>
@@ -1044,6 +1055,9 @@ export default function ExercisesPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">Asiento {entry.entryNumber}: {entry.description}</span>
                       <span className="text-xs text-muted-foreground">{entry.date}</span>
+                      {entry.points !== undefined && (
+                        <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300">{entry.points} pts</Badge>
+                      )}
                     </div>
                     <table className="w-full text-xs">
                       <thead>

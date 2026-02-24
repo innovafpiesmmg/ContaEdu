@@ -107,6 +107,7 @@ Description with multiple operations to record:
 
 ### Asiento 1: Description
 Fecha: 2024-01-15
+**Puntos:** 5
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -115,6 +116,7 @@ Fecha: 2024-01-15
 
 ### Asiento 2: Description
 Fecha: 2024-01-20
+**Puntos:** 5
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -126,19 +128,37 @@ Fecha: 2024-01-20
 ```
 
 ### Exam Template Format
+Exams can optionally include `**Ejercicio:**` to link to an existing exercise, or include an inline `## Solución` with `### Asiento N:` blocks (with optional `**Puntos:** N` per entry). When a solution is included but no matching exercise is found, the importer auto-creates an exercise with the solution and assigns it to the selected course.
 ```md
 # Examen: Title
 
 **Duración:** 60
-**Ejercicio:** Exercise title to link
 
 ## Descripción
-Exam description...
+Exam description with operations to record...
 
 ## Instrucciones
 Instructions for students...
 
----
+## Solución
+
+### Asiento 1: Description
+**Puntos:** 2,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías | 3.000,00 | |
+| 472 H.P. IVA soportado | 630,00 | |
+| 400 Proveedores | | 3.630,00 |
+
+### Asiento 2: Description
+**Puntos:** 2,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 2.420,00 | |
+| 700 Ventas de mercaderías | | 2.000,00 |
+| 477 H.P. IVA repercutido | | 420,00 |
 ```
 
 ## Running

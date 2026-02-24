@@ -19,31 +19,53 @@ function generateExamTemplate(): string {
   return `# Examen: Examen Tema 3 - Compras y Ventas
 
 **Duración:** 60
-**Ejercicio:** (título del ejercicio base)
 
 ## Descripción
 Examen práctico sobre los asientos de compras y ventas con IVA.
-El alumno deberá registrar correctamente los asientos contables.
+Contabiliza las siguientes operaciones:
+
+1. Compra mercaderías por 3.000 EUR + IVA 21%. Pago a crédito.
+2. Venta por 2.000 EUR + IVA 21%. Cobro a 60 días.
 
 ## Instrucciones
 - Tipo de IVA aplicable: 21%
-- Todas las operaciones se realizan a crédito
 - Utilizar las cuentas del PGC
 
----
+## Solución
 
-# Examen: Control Tema 5 - Nóminas
+### Asiento 1: Compra de mercaderías
+**Puntos:** 2,5
 
-**Duración:** 45
-**Ejercicio:** (título del ejercicio base)
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías | 3.000,00 | |
+| 472 H.P. IVA soportado | 630,00 | |
+| 400 Proveedores | | 3.630,00 |
 
-## Descripción
-Control práctico sobre la contabilización de nóminas y seguros sociales.
+### Asiento 2: Venta de productos
+**Puntos:** 2,5
 
-## Instrucciones
-- Revisar los porcentajes de retención indicados en cada enunciado
-- Contabilizar tanto el devengo como el pago de la nómina
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 2.420,00 | |
+| 700 Ventas de mercaderías | | 2.000,00 |
+| 477 H.P. IVA repercutido | | 420,00 |
 `;
+}
+
+interface SolutionLine {
+  accountCode: string;
+  accountName: string;
+  debit: string;
+  credit: string;
+}
+
+interface SolutionEntry {
+  entryNumber: number;
+  date: string;
+  description: string;
+  lines: SolutionLine[];
+  points?: number;
 }
 
 interface ParsedExam {
@@ -52,32 +74,90 @@ interface ParsedExam {
   instructions: string;
   durationMinutes: number;
   exerciseTitle: string;
+  solution?: SolutionEntry[];
+}
+
+function parseExamSolution(solutionBlock: string): SolutionEntry[] {
+  const entries: SolutionEntry[] = [];
+  const asientoBlocks = solutionBlock.split(/(?=###\s+Asiento\s+\d+)/i).map(b => b.trim()).filter(Boolean);
+
+  for (const block of asientoBlocks) {
+    const headerMatch = block.match(/^###\s+Asiento\s+(\d+)\s*[:\-]?\s*(.*)$/im);
+    if (!headerMatch) continue;
+
+    const entryNumber = parseInt(headerMatch[1]);
+    const description = headerMatch[2].trim();
+    const dateMatch = block.match(/Fecha:\s*(\S+)/i);
+    const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
+    const pointsMatch = block.match(/\*\*Puntos:\*\*\s*([\d.,]+)/i);
+    const points = pointsMatch ? parseFloat(pointsMatch[1].replace(",", ".")) : undefined;
+
+    const lines: SolutionLine[] = [];
+    const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
+    if (tableRows) {
+      for (const row of tableRows) {
+        if (row.includes("Cuenta") || row.includes("---")) continue;
+        const cells = row.split("|").map(c => c.trim());
+        const nonEmpty = cells.filter(Boolean);
+        if (nonEmpty.length < 1) continue;
+        const startIdx = cells[0] === "" ? 1 : 0;
+        const accountFull = (cells[startIdx] || "").trim();
+        const codeMatch = accountFull.match(/^(\d+)\s+(.+)$/);
+        if (!codeMatch) continue;
+        const rawDebit = (cells[startIdx + 1] || "").trim().replace(/\./g, "").replace(",", ".");
+        const rawCredit = (cells[startIdx + 2] || "").trim().replace(/\./g, "").replace(",", ".");
+        lines.push({
+          accountCode: codeMatch[1],
+          accountName: codeMatch[2].trim(),
+          debit: (parseFloat(rawDebit) || 0).toFixed(2),
+          credit: (parseFloat(rawCredit) || 0).toFixed(2),
+        });
+      }
+    }
+    if (lines.length >= 2) {
+      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}) });
+    }
+  }
+  return entries;
 }
 
 function parseExamsMD(md: string): ParsedExam[] {
   const exams: ParsedExam[] = [];
-  const blocks = md.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
+  const cleaned = md.replace(/^\uFEFF/, "");
+  const blocks = cleaned.split(/(?=^\s*#\s+Examen(?:\s+\d+)?:\s*)/m).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
-    const titleMatch = block.match(/^#\s+Examen:\s*(.+)$/m);
+    const titleMatch = block.match(/^\s*#\s+Examen(?:\s+\d+)?:\s*(.+)$/m);
     const durationMatch = block.match(/\*\*Duraci[oó]n:\*\*\s*(\d+)/i);
     const exerciseMatch = block.match(/\*\*Ejercicio:\*\*\s*(.+)$/mi);
-    const descMatch = block.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)(?=##|\z)/i);
-    const instrMatch = block.match(/##\s+Instrucciones\s*\n([\s\S]*?)$/i);
+
+    const solutionSplit = block.split(/^\s*##\s+Soluci[oó]n\s*$/im);
+    const mainBlock = solutionSplit[0];
+    const solutionBlock = solutionSplit.length > 1 ? solutionSplit[1] : null;
+
+    const instrSplit = mainBlock.split(/^\s*##\s+Instrucciones\s*$/im);
+    const preInstrBlock = instrSplit[0];
+    const instrBlock = instrSplit.length > 1 ? instrSplit[1] : null;
+
+    const descMatch = preInstrBlock.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)$/i);
 
     if (titleMatch) {
-      let descText = descMatch ? descMatch[1].trim() : "";
-      if (instrMatch) {
-        descText = descText.replace(instrMatch[0], "").trim();
-      }
-
-      exams.push({
+      const entry: ParsedExam = {
         title: titleMatch[1].trim(),
         durationMinutes: durationMatch ? parseInt(durationMatch[1]) : 60,
         exerciseTitle: exerciseMatch ? exerciseMatch[1].trim() : "",
-        description: descText,
-        instructions: instrMatch ? instrMatch[1].trim() : "",
-      });
+        description: descMatch ? descMatch[1].trim() : "",
+        instructions: instrBlock ? instrBlock.trim() : "",
+      };
+
+      if (solutionBlock) {
+        const parsed = parseExamSolution(solutionBlock);
+        if (parsed.length > 0) {
+          entry.solution = parsed;
+        }
+      }
+
+      exams.push(entry);
     }
   }
   return exams;
@@ -143,19 +223,32 @@ export default function TeacherExamsPage() {
 
   const importMutation = useMutation({
     mutationFn: async (parsed: ParsedExam[]) => {
-      const courseExercises = exercises?.filter(e => e.courseId === importCourseId) || [];
       for (const ex of parsed) {
         let exerciseId = "";
+
         if (ex.exerciseTitle) {
-          const found = courseExercises.find(
+          const allExercises = exercises || [];
+          const found = allExercises.find(
             e => e.title.toLowerCase().includes(ex.exerciseTitle.toLowerCase()) ||
                  ex.exerciseTitle.toLowerCase().includes(e.title.toLowerCase())
           );
           if (found) exerciseId = found.id;
         }
-        if (!exerciseId) {
-          throw new Error(`No se encontro un ejercicio base para el examen "${ex.title}". Asegurate de que el nombre del ejercicio en la plantilla coincida con uno existente en el curso.`);
+
+        if (!exerciseId && ex.solution && ex.solution.length > 0) {
+          const exRes = await apiRequest("POST", "/api/exercises", {
+            title: ex.title,
+            description: ex.description,
+            exerciseType: "practice",
+          });
+          const created = await exRes.json();
+          exerciseId = created.id;
+          await apiRequest("POST", `/api/exercises/${exerciseId}/solution`, { entries: ex.solution });
+          await apiRequest("POST", `/api/exercises/${exerciseId}/assign`, { courseId: importCourseId });
+        } else if (!exerciseId) {
+          throw new Error(`No se encontró ejercicio base para "${ex.title}". Incluye la solución en el MD o crea el ejercicio previamente.`);
         }
+
         await apiRequest("POST", "/api/exams", {
           title: ex.title,
           description: ex.description,
@@ -168,6 +261,7 @@ export default function TeacherExamsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
       setImportOpen(false);
       setImportText("");
       setImportCourseId("");
@@ -475,8 +569,8 @@ export default function TeacherExamsPage() {
 
             {importCourseId && (
               <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-                Ejercicios disponibles en este curso:{" "}
-                {exercises?.filter(e => e.courseId === importCourseId).map(e => e.title).join(", ") || "Ninguno"}
+                Ejercicios disponibles:{" "}
+                {exercises?.map(e => e.title).join(", ") || "Ninguno"}
               </div>
             )}
 
@@ -486,7 +580,7 @@ export default function TeacherExamsPage() {
                 data-testid="textarea-import-exams"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Examen: Título del examen\n\n**Duración:** 60\n**Ejercicio:** Título del ejercicio base\n\n## Descripción\nDescripción del examen...\n\n## Instrucciones\nInstrucciones para el alumno...\n\n---\n\n# Examen: Otro examen\n...`}
+                placeholder={`# Examen: Título del examen\n\n**Duración:** 60\n\n## Descripción\nDescripción del examen...\n\n## Instrucciones\nInstrucciones...\n\n## Solución\n\n### Asiento 1: Descripción\n**Puntos:** 2,5\n\n| Cuenta | Debe | Haber |\n|--------|------|-------|\n| 600 Compras | 1.000,00 | |\n| 400 Proveedores | | 1.000,00 |`}
                 className="font-mono text-xs"
                 rows={12}
               />
@@ -495,26 +589,43 @@ export default function TeacherExamsPage() {
             {previewParsed.length > 0 && (
               <div className="space-y-2">
                 <Label>Vista previa ({previewParsed.length} examen{previewParsed.length !== 1 ? "es" : ""} detectado{previewParsed.length !== 1 ? "s" : ""})</Label>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
+                <div className="space-y-2 max-h-60 overflow-y-auto">
                   {previewParsed.map((ex, i) => {
-                    const courseExercises = exercises?.filter(e => e.courseId === importCourseId) || [];
-                    const matched = ex.exerciseTitle ? courseExercises.find(
+                    const allExercises = exercises || [];
+                    const matched = ex.exerciseTitle ? allExercises.find(
                       e => e.title.toLowerCase().includes(ex.exerciseTitle.toLowerCase()) ||
                            ex.exerciseTitle.toLowerCase().includes(e.title.toLowerCase())
                     ) : null;
+                    const totalPoints = ex.solution?.reduce((sum, e) => sum + (e.points || 0), 0) || 0;
                     return (
                       <div key={i} className="bg-muted/50 rounded-md px-3 py-2 text-sm" data-testid={`preview-exam-${i}`}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{ex.title}</span>
                           <Badge variant="outline" className="gap-1 text-[10px]">
                             <Clock className="w-3 h-3" />
                             {ex.durationMinutes} min
                           </Badge>
+                          {ex.solution && ex.solution.length > 0 && (
+                            <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300">
+                              {ex.solution.length} asiento{ex.solution.length !== 1 ? "s" : ""}
+                              {totalPoints > 0 ? ` · ${totalPoints} pts` : ""}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ex.description}</p>
                         {ex.exerciseTitle && (
-                          <p className={`text-xs mt-0.5 ${matched ? "text-green-600" : "text-red-500 font-medium"}`}>
-                            Ejercicio: {ex.exerciseTitle} {matched ? "(encontrado)" : "(no encontrado - corrige el nombre)"}
+                          <p className={`text-xs mt-0.5 ${matched ? "text-green-600" : "text-amber-600"}`}>
+                            Ejercicio: {ex.exerciseTitle} {matched ? "(encontrado)" : "(no encontrado - se creará automáticamente)"}
+                          </p>
+                        )}
+                        {!ex.exerciseTitle && ex.solution && ex.solution.length > 0 && (
+                          <p className="text-xs mt-0.5 text-blue-600">
+                            Se creará ejercicio automáticamente con solución
+                          </p>
+                        )}
+                        {!ex.exerciseTitle && (!ex.solution || ex.solution.length === 0) && (
+                          <p className="text-xs mt-0.5 text-red-500 font-medium">
+                            Sin ejercicio ni solución - añade **Ejercicio:** o ## Solución
                           </p>
                         )}
                       </div>
