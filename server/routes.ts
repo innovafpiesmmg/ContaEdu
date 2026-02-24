@@ -840,6 +840,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/submissions/pending-counts", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const counts = await storage.getPendingSubmissionCounts();
+      res.json(counts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/submissions/exercise/:exerciseId", requireAuth, async (req: any, res) => {
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "No autenticado" });

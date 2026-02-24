@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import {
   users, schoolYears, systemConfig, courses, accounts, exercises, exerciseDocuments, courseExercises,
   journalEntries, journalLines, exams, examAttempts, exerciseSubmissions,
@@ -103,6 +103,7 @@ export interface IStorage {
   createOrUpdateSubmission(data: InsertExerciseSubmission): Promise<ExerciseSubmission>;
   submitExercise(exerciseId: string, studentId: string): Promise<ExerciseSubmission>;
   reviewExercise(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExerciseSubmission>;
+  getPendingSubmissionCounts(): Promise<Record<string, number>>;
 
   updateUserPassword(id: string, hashedPassword: string): Promise<void>;
   updateUserEmail(id: string, email: string): Promise<void>;
@@ -524,6 +525,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(exerciseSubmissions.id, id))
       .returning();
     return updated;
+  }
+
+  async getPendingSubmissionCounts(): Promise<Record<string, number>> {
+    const rows = await db.select({
+      exerciseId: exerciseSubmissions.exerciseId,
+      count: count(),
+    })
+    .from(exerciseSubmissions)
+    .where(eq(exerciseSubmissions.status, "submitted" as any))
+    .groupBy(exerciseSubmissions.exerciseId);
+    const result: Record<string, number> = {};
+    for (const row of rows) {
+      result[row.exerciseId] = row.count;
+    }
+    return result;
   }
 
   async updateUserPassword(id: string, hashedPassword: string): Promise<void> {

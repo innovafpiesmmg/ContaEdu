@@ -329,6 +329,7 @@ function ExerciseCard({
   submissions,
   onReview,
   linkedExam,
+  pendingCount,
 }: {
   ex: Exercise;
   courses: Course[];
@@ -342,6 +343,7 @@ function ExerciseCard({
   submissions?: SubmissionWithStudent[];
   onReview: (s: SubmissionWithStudent) => void;
   linkedExam?: Exam;
+  pendingCount?: number;
 }) {
   const { toast } = useToast();
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -431,6 +433,12 @@ function ExerciseCard({
                 ) : (
                   <Badge variant="outline" className="text-xs text-muted-foreground">Sin asignar</Badge>
                 )}
+                {pendingCount && pendingCount > 0 ? (
+                  <Badge variant="destructive" className="text-xs gap-1 animate-pulse">
+                    <Send className="w-3 h-3" />
+                    {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
+                  </Badge>
+                ) : null}
               </div>
             </div>
           </div>
@@ -795,6 +803,7 @@ export default function ExercisesPage() {
   const { data: exercises, isLoading } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
   const { data: exams } = useQuery<Exam[]>({ queryKey: ["/api/exams"] });
+  const { data: pendingCounts } = useQuery<Record<string, number>>({ queryKey: ["/api/submissions/pending-counts"] });
 
   const { data: submissions } = useQuery<SubmissionWithStudent[]>({
     queryKey: [`/api/submissions/exercise/${viewSubmissionsId}`],
@@ -913,6 +922,7 @@ export default function ExercisesPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/submissions/exercise/${viewSubmissionsId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions/pending-counts"] });
       setReviewingSubmission(null);
       setFeedbackText("");
       setGradeText("");
@@ -1091,6 +1101,7 @@ export default function ExercisesPage() {
                 ex={ex}
                 courses={courses || []}
                 linkedExam={exams?.find(e => e.exerciseId === ex.id)}
+                pendingCount={pendingCounts?.[ex.id] || 0}
                 onViewSolution={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
                 onUploadSolution={() => { setSolutionExerciseId(ex.id); setSolutionText(""); }}
                 onViewSubmissions={() => setViewSubmissionsId(viewSubmissionsId === ex.id ? null : ex.id)}
