@@ -94,6 +94,7 @@ function JournalDocumentsViewer({ exerciseId }: { exerciseId: string }) {
 interface TaskItem {
   entryNumber: number;
   description: string;
+  enunciado?: string;
   points?: number;
 }
 
@@ -167,19 +168,28 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
 
             {tasks.length > 0 && (
               <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">Asientos a registrar:</p>
-                <ol className="space-y-1.5">
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">Operaciones a contabilizar:</p>
+                <ol className="space-y-2">
                   {tasks.map((task, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm" data-testid={`task-item-${i}`}>
-                      <Badge variant="secondary" className="font-mono text-[10px] shrink-0 w-6 h-5 flex items-center justify-center p-0">
-                        {task.entryNumber}
-                      </Badge>
-                      <span className="text-foreground">{task.description}</span>
-                      {task.points !== undefined && task.points > 0 && (
-                        <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300 ml-auto shrink-0">
-                          {task.points} pts
+                    <li key={i} className="text-sm" data-testid={`task-item-${i}`}>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="secondary" className="font-mono text-[10px] shrink-0 w-6 h-5 flex items-center justify-center p-0 mt-0.5">
+                          {task.entryNumber}
                         </Badge>
-                      )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{task.description}</span>
+                            {task.points !== undefined && task.points > 0 && (
+                              <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300 shrink-0">
+                                {task.points} pts
+                              </Badge>
+                            )}
+                          </div>
+                          {task.enunciado && (
+                            <p className="text-muted-foreground text-sm mt-0.5 whitespace-pre-wrap">{task.enunciado}</p>
+                          )}
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ol>

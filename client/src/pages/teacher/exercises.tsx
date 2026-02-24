@@ -71,6 +71,7 @@ interface SolutionEntry {
   entryNumber: number;
   date: string;
   description: string;
+  enunciado?: string;
   lines: SolutionLine[];
   points?: number;
 }
@@ -79,6 +80,8 @@ function generateSolutionTemplate(): string {
   return `## Asiento 1: Compra de mercaderías
 Fecha: 2024-01-15
 **Puntos:** 3
+
+La empresa ALFA, S.L. compra mercaderías a un proveedor por importe de 5.000€ + IVA 21%. El pago queda pendiente a 30 días.
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -90,6 +93,8 @@ Fecha: 2024-01-15
 Fecha: 2024-01-20
 **Puntos:** 3
 
+Vendemos mercaderías a un cliente por 8.000€ + IVA 21%. El cobro queda pendiente.
+
 | Cuenta | Debe | Haber |
 |--------|------|-------|
 | 430 Clientes | 9.680,00 | |
@@ -100,11 +105,31 @@ Fecha: 2024-01-20
 Fecha: 2024-02-15
 **Puntos:** 4
 
+El cliente paga la totalidad de la deuda mediante transferencia bancaria.
+
 | Cuenta | Debe | Haber |
 |--------|------|-------|
 | 572 Bancos | 9.680,00 | |
 | 430 Clientes | | 9.680,00 |
 `;
+}
+
+function extractEnunciado(block: string): string | undefined {
+  const blockLines = block.split("\n");
+  const enunciadoLines: string[] = [];
+  let pastMeta = false;
+  for (const line of blockLines) {
+    if (/^#{2,3}\s+Asiento\s+\d+/i.test(line)) continue;
+    if (/^Fecha:\s*/i.test(line)) continue;
+    if (/^\*\*Puntos:\*\*/i.test(line)) continue;
+    if (/^\|/.test(line)) break;
+    if (line.trim() === "" && !pastMeta) continue;
+    pastMeta = true;
+    if (line.trim() === "" && enunciadoLines.length > 0) break;
+    enunciadoLines.push(line.trim());
+  }
+  const text = enunciadoLines.join("\n").trim();
+  return text || undefined;
 }
 
 function parseSolutionMD(md: string): SolutionEntry[] {
@@ -122,6 +147,8 @@ function parseSolutionMD(md: string): SolutionEntry[] {
     const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
     const pointsMatch = block.match(/\*\*Puntos:\*\*\s*([\d.,]+)/i);
     const points = pointsMatch ? parseFloat(pointsMatch[1].replace(",", ".")) : undefined;
+
+    const enunciado = extractEnunciado(block);
 
     const lines: SolutionLine[] = [];
     const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
@@ -152,7 +179,7 @@ function parseSolutionMD(md: string): SolutionEntry[] {
     }
 
     if (lines.length >= 2) {
-      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}) });
+      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}), ...(enunciado ? { enunciado } : {}) });
     }
   }
 
@@ -174,6 +201,8 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
     const pointsMatch = block.match(/\*\*Puntos:\*\*\s*([\d.,]+)/i);
     const points = pointsMatch ? parseFloat(pointsMatch[1].replace(",", ".")) : undefined;
 
+    const enunciado = extractEnunciado(block);
+
     const lines: SolutionLine[] = [];
     const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
     if (tableRows) {
@@ -203,7 +232,7 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
     }
 
     if (lines.length >= 2) {
-      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}) });
+      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}), ...(enunciado ? { enunciado } : {}) });
     }
   }
 
@@ -1006,6 +1035,9 @@ export default function ExercisesPage() {
                           <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300">{entry.points} pts</Badge>
                         )}
                       </div>
+                      {entry.enunciado && (
+                        <p className="text-xs text-muted-foreground mb-1 italic">{entry.enunciado}</p>
+                      )}
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="text-muted-foreground">
@@ -1059,6 +1091,9 @@ export default function ExercisesPage() {
                         <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-300">{entry.points} pts</Badge>
                       )}
                     </div>
+                    {entry.enunciado && (
+                      <p className="text-xs text-muted-foreground mb-1 italic">{entry.enunciado}</p>
+                    )}
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="text-muted-foreground">

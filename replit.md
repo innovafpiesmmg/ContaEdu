@@ -109,6 +109,8 @@ Description with multiple operations to record:
 Fecha: 2024-01-15
 **Puntos:** 5
 
+La empresa compra mercaderías por 5.000€. Pago pendiente al proveedor.
+
 | Cuenta | Debe | Haber |
 |--------|------|-------|
 | 600 Compras de mercaderías | 5.000,00 | |
@@ -117,6 +119,8 @@ Fecha: 2024-01-15
 ### Asiento 2: Description
 Fecha: 2024-01-20
 **Puntos:** 5
+
+Venta de mercaderías a un cliente por 8.000€. Cobro pendiente.
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -145,6 +149,8 @@ Instructions for students...
 ### Asiento 1: Description
 **Puntos:** 2,5
 
+La empresa compra mercaderías por 3.000€ + IVA 21%. Pago pendiente.
+
 | Cuenta | Debe | Haber |
 |--------|------|-------|
 | 600 Compras de mercaderías | 3.000,00 | |
@@ -153,6 +159,8 @@ Instructions for students...
 
 ### Asiento 2: Description
 **Puntos:** 2,5
+
+Venta de mercaderías por 2.000€ + IVA 21%. Cobro pendiente a 60 días.
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|

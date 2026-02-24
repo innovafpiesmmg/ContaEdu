@@ -22,10 +22,6 @@ function generateExamTemplate(): string {
 
 ## Descripción
 Examen práctico sobre los asientos de compras y ventas con IVA.
-Contabiliza las siguientes operaciones:
-
-1. Compra mercaderías por 3.000 EUR + IVA 21%. Pago a crédito.
-2. Venta por 2.000 EUR + IVA 21%. Cobro a 60 días.
 
 ## Instrucciones
 - Tipo de IVA aplicable: 21%
@@ -36,6 +32,8 @@ Contabiliza las siguientes operaciones:
 ### Asiento 1: Compra de mercaderías
 **Puntos:** 2,5
 
+La empresa compra mercaderías por importe de 3.000 EUR + IVA 21%. El pago queda pendiente al proveedor.
+
 | Cuenta | Debe | Haber |
 |--------|------|-------|
 | 600 Compras de mercaderías | 3.000,00 | |
@@ -44,6 +42,8 @@ Contabiliza las siguientes operaciones:
 
 ### Asiento 2: Venta de productos
 **Puntos:** 2,5
+
+Vendemos mercaderías a un cliente por 2.000 EUR + IVA 21%. Cobro pendiente a 60 días.
 
 | Cuenta | Debe | Haber |
 |--------|------|-------|
@@ -64,6 +64,7 @@ interface SolutionEntry {
   entryNumber: number;
   date: string;
   description: string;
+  enunciado?: string;
   lines: SolutionLine[];
   points?: number;
 }
@@ -75,6 +76,24 @@ interface ParsedExam {
   durationMinutes: number;
   exerciseTitle: string;
   solution?: SolutionEntry[];
+}
+
+function extractEnunciado(block: string): string | undefined {
+  const blockLines = block.split("\n");
+  const enunciadoLines: string[] = [];
+  let pastMeta = false;
+  for (const line of blockLines) {
+    if (/^#{2,3}\s+Asiento\s+\d+/i.test(line)) continue;
+    if (/^Fecha:\s*/i.test(line)) continue;
+    if (/^\*\*Puntos:\*\*/i.test(line)) continue;
+    if (/^\|/.test(line)) break;
+    if (line.trim() === "" && !pastMeta) continue;
+    pastMeta = true;
+    if (line.trim() === "" && enunciadoLines.length > 0) break;
+    enunciadoLines.push(line.trim());
+  }
+  const text = enunciadoLines.join("\n").trim();
+  return text || undefined;
 }
 
 function parseExamSolution(solutionBlock: string): SolutionEntry[] {
@@ -91,6 +110,8 @@ function parseExamSolution(solutionBlock: string): SolutionEntry[] {
     const date = dateMatch ? dateMatch[1].trim() : new Date().toISOString().split("T")[0];
     const pointsMatch = block.match(/\*\*Puntos:\*\*\s*([\d.,]+)/i);
     const points = pointsMatch ? parseFloat(pointsMatch[1].replace(",", ".")) : undefined;
+
+    const enunciado = extractEnunciado(block);
 
     const lines: SolutionLine[] = [];
     const tableRows = block.match(/\|[^|\n]*\|[^|\n]*\|[^|\n]*\|/g);
@@ -115,7 +136,7 @@ function parseExamSolution(solutionBlock: string): SolutionEntry[] {
       }
     }
     if (lines.length >= 2) {
-      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}) });
+      entries.push({ entryNumber, date, description, lines, ...(points !== undefined ? { points } : {}), ...(enunciado ? { enunciado } : {}) });
     }
   }
   return entries;

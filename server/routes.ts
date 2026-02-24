@@ -720,6 +720,7 @@ export async function registerRoutes(
         ? solution.map((entry: any) => ({
             entryNumber: entry.entryNumber,
             description: entry.description || "",
+            enunciado: entry.enunciado || "",
             points: entry.points,
           }))
         : [];
