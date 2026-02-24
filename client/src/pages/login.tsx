@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Lock, User, ArrowRight, ArrowLeft, UserPlus, KeyRound } from "lucide-react";
+import { BookOpen, Lock, User, ArrowRight, ArrowLeft, UserPlus, KeyRound, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -15,11 +15,14 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onBack }: LoginPageProps) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [enrollmentCode, setEnrollmentCode] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, refetch } = useAuth();
   const { toast } = useToast();
@@ -52,6 +55,7 @@ export default function LoginPage({ onBack }: LoginPageProps) {
         username,
         password,
         fullName,
+        email: regEmail || null,
         enrollmentCode: enrollmentCode.toUpperCase(),
       });
       await refetch();
@@ -68,11 +72,33 @@ export default function LoginPage({ onBack }: LoginPageProps) {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setIsLoading(true);
+    try {
+      await apiRequest("POST", "/api/auth/forgot-password", { email: forgotEmail });
+      setForgotSent(true);
+      toast({ title: "Si el correo existe en nuestro sistema, recibirás un enlace de recuperación" });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "No se pudo procesar la solicitud",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setUsername("");
     setPassword("");
     setFullName("");
     setEnrollmentCode("");
+    setRegEmail("");
+    setForgotEmail("");
+    setForgotSent(false);
   };
 
   return (
@@ -103,31 +129,83 @@ export default function LoginPage({ onBack }: LoginPageProps) {
 
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="pb-4">
-            <div className="flex gap-2">
-              <Button
-                variant={mode === "login" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => { setMode("login"); resetForm(); }}
-                className="flex-1"
-                data-testid="tab-login"
-              >
-                <Lock className="w-4 h-4 mr-1" />
-                Iniciar Sesión
-              </Button>
-              <Button
-                variant={mode === "register" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => { setMode("register"); resetForm(); }}
-                className="flex-1"
-                data-testid="tab-register"
-              >
-                <UserPlus className="w-4 h-4 mr-1" />
-                Matricularse
-              </Button>
-            </div>
+            {mode !== "forgot" ? (
+              <div className="flex gap-2">
+                <Button
+                  variant={mode === "login" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => { setMode("login"); resetForm(); }}
+                  className="flex-1"
+                  data-testid="tab-login"
+                >
+                  <Lock className="w-4 h-4 mr-1" />
+                  Iniciar Sesión
+                </Button>
+                <Button
+                  variant={mode === "register" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => { setMode("register"); resetForm(); }}
+                  className="flex-1"
+                  data-testid="tab-register"
+                >
+                  <UserPlus className="w-4 h-4 mr-1" />
+                  Matricularse
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => { setMode("login"); resetForm(); }}>
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Volver
+                </Button>
+                <span className="text-sm font-medium">Recuperar contraseña</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            {mode === "login" ? (
+            {mode === "forgot" ? (
+              forgotSent ? (
+                <div className="space-y-4 text-center py-4">
+                  <Mail className="w-12 h-12 mx-auto text-primary" />
+                  <p className="text-sm font-medium">Correo enviado</p>
+                  <p className="text-sm text-muted-foreground">
+                    Si el correo electrónico está registrado, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={() => { setMode("login"); resetForm(); }} data-testid="button-back-to-login">
+                    Volver al inicio de sesión
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email">Correo electrónico</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        data-testid="input-forgot-email"
+                        className="pl-10"
+                        placeholder="tu.correo@ejemplo.com"
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading || !forgotEmail}
+                    data-testid="button-forgot-submit"
+                  >
+                    {isLoading ? "Enviando..." : "Enviar enlace de recuperación"}
+                  </Button>
+                </form>
+              )
+            ) : mode === "login" ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Usuario</Label>
@@ -167,6 +245,16 @@ export default function LoginPage({ onBack }: LoginPageProps) {
                   {isLoading ? "Accediendo..." : "Acceder"}
                   {!isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
                 </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => { setMode("forgot"); resetForm(); }}
+                    data-testid="link-forgot-password"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
@@ -213,6 +301,22 @@ export default function LoginPage({ onBack }: LoginPageProps) {
                       onChange={e => setUsername(e.target.value)}
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reg-email">Correo electrónico</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="reg-email"
+                      type="email"
+                      data-testid="input-reg-email"
+                      className="pl-10"
+                      placeholder="tu.correo@ejemplo.com"
+                      value={regEmail}
+                      onChange={e => setRegEmail(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Para recuperar tu contraseña si la olvidas</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-password">Contraseña</Label>

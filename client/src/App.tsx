@@ -33,6 +33,8 @@ import StudentExercisesPage from "@/pages/student/student-exercises";
 import ManualPage from "@/pages/student/manual";
 import StudentExamsPage from "@/pages/student/student-exams";
 import AnaliticaPage from "@/pages/student/analitica";
+import ProfilePage from "@/pages/profile";
+import ResetPasswordPage from "@/pages/reset-password";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function AdminRouter() {
@@ -56,6 +58,7 @@ function TeacherRouter() {
       <Route path="/students/:id/audit" component={StudentAuditPage} />
       <Route path="/exercises" component={TeacherExercisesPage} />
       <Route path="/exams" component={TeacherExamsPage} />
+      <Route path="/profile" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -73,6 +76,7 @@ function StudentRouter() {
       <Route path="/exams" component={StudentExamsPage} />
       <Route path="/manual" component={ManualPage} />
       <Route path="/analitica" component={AnaliticaPage} />
+      <Route path="/profile" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -102,6 +106,10 @@ function AuthenticatedApp() {
         </div>
       </div>
     );
+  }
+
+  if (window.location.pathname === "/reset-password") {
+    return <ResetPasswordPage />;
   }
 
   if (!user) {

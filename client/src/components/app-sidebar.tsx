@@ -27,6 +27,7 @@ import {
   ClipboardList,
   FileQuestion,
   PieChart,
+  UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ export function AppSidebar() {
     { title: "Alumnos", url: "/students", icon: Users },
     { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
     { title: "Examenes", url: "/exams", icon: FileQuestion },
+    { title: "Mi Perfil", url: "/profile", icon: UserCog },
   ];
 
   const studentItems = [
@@ -66,6 +68,7 @@ export function AppSidebar() {
     { title: "Plan de Cuentas", url: "/accounts", icon: BookOpen },
     { title: "Manual Contable", url: "/manual", icon: BookOpenText },
     { title: "C. Analitica", url: "/analitica", icon: PieChart },
+    { title: "Mi Perfil", url: "/profile", icon: UserCog },
   ];
 
   const items = user.role === "admin" ? adminItems : user.role === "teacher" ? teacherItems : studentItems;

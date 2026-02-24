@@ -8,14 +8,15 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - **Backend**: Express.js with session-based authentication (bcryptjs)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Auth**: Session-based with bcrypt password hashing, 3 roles (admin, teacher, student)
+- **Email**: Nodemailer for password recovery emails (SMTP configurable from admin panel)
 
 ## User Roles
-- **Admin**: Manages school years, tax regime (IVA/IGIC), creates teacher accounts
-- **Teacher**: Creates courses, students, exercises, exams; reviews student submissions with feedback/grades; imports exercises/exams from MD files
-- **Student**: Registers journal entries, views ledger/trial balance/PGC, submits exercises for review, takes timed exams, accesses manual and analytical accounting
+- **Admin**: Manages school years, tax regime (IVA/IGIC), creates teacher accounts, configures mail server
+- **Teacher**: Creates courses, students, exercises, exams; reviews student submissions with feedback/grades; imports exercises/exams from MD files; manages own password/email
+- **Student**: Registers journal entries, views ledger/trial balance/PGC, submits exercises for review, takes timed exams, accesses manual and analytical accounting; manages own password/email
 
 ## Default Credentials
-- Admin: `admin` / `admin123`
+- Admin: `admin` / `admin123` (change via console script)
 - Teacher: `mgarcia` / `prof123`  
 - Students: `jperez`, `alopez`, `cmartin` / `alumno123`
 
@@ -25,17 +26,26 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `server/storage.ts` - Database operations
 - `server/seed.ts` - Initial data seeding
 - `server/db.ts` - Database connection
+- `server/mail.ts` - Email sending utility (nodemailer)
 - `client/src/App.tsx` - Main app with role-based routing
 - `client/src/lib/auth.tsx` - Auth context provider
 - `client/src/lib/exercise-context.tsx` - Exercise selection context
+- `client/src/pages/profile.tsx` - User profile (password change, email)
+- `client/src/pages/reset-password.tsx` - Password reset page
+- `scripts/change-admin-password.ts` - Console script for admin password
 
 ## API Routes
 - `POST /api/auth/login` - Login
 - `GET /api/auth/me` - Current user
 - `POST /api/auth/logout` - Logout
 - `POST /api/auth/register` - Student self-registration with enrollment code
+- `POST /api/auth/change-password` - Change password (teachers/students only)
+- `POST /api/auth/update-email` - Update user email
+- `POST /api/auth/forgot-password` - Request password reset email
+- `POST /api/auth/reset-password` - Reset password with token
 - `GET/POST /api/school-years` - School year CRUD
 - `GET/PATCH /api/config` - Tax regime config
+- `GET/PATCH /api/config/mail` - Mail server SMTP config (admin only)
 - `GET/POST /api/users/teachers` - Teacher management
 - `GET/POST /api/users/students` - Student management
 - `GET/POST /api/courses` - Course management
@@ -53,6 +63,13 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `POST /api/submissions/:exerciseId/submit` - Student submits exercise
 - `POST /api/submissions/:id/review` - Teacher reviews with feedback/grade
 - `GET /api/audit/students/:id/journal|ledger|trial-balance` - Teacher audit
+
+## Password Management
+- Teachers and students can change their password from "Mi Perfil" in the sidebar
+- Admin password can only be changed via console: `npx tsx scripts/change-admin-password.ts <nueva_contraseña>`
+- Password recovery via email requires SMTP configuration in admin panel (Configuración > Servidor de Correo)
+- Password reset tokens expire after 2 hours and are single-use
+- Users need an email address registered to use password recovery
 
 ## Exercise Submission Flow
 1. Student works on exercise (journal entries)
@@ -94,6 +111,7 @@ Instructions for students...
 ## Running
 - `npm run dev` starts both frontend and backend on port 5000
 - `npm run db:push` syncs database schema
+- `npx tsx scripts/change-admin-password.ts <password>` changes admin password
 
 ## Language
 - UI is in Spanish (target audience: Spanish vocational training students)

@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import {
   users, schoolYears, systemConfig, courses, accounts, exercises,
   journalEntries, journalLines, exams, examAttempts, exerciseSubmissions,
+  mailConfig, passwordResetTokens,
   type User, type InsertUser,
   type SchoolYear, type InsertSchoolYear,
   type SystemConfig,
@@ -14,6 +15,8 @@ import {
   type Exam, type InsertExam,
   type ExamAttempt, type InsertExamAttempt,
   type ExerciseSubmission, type InsertExerciseSubmission,
+  type MailConfig, type InsertMailConfig,
+  type PasswordResetToken, type InsertPasswordResetToken,
 } from "@shared/schema";
 
 function generateEnrollmentCode(): string {
@@ -86,6 +89,17 @@ export interface IStorage {
   createOrUpdateSubmission(data: InsertExerciseSubmission): Promise<ExerciseSubmission>;
   submitExercise(exerciseId: string, studentId: string): Promise<ExerciseSubmission>;
   reviewExercise(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExerciseSubmission>;
+
+  updateUserPassword(id: string, hashedPassword: string): Promise<void>;
+  updateUserEmail(id: string, email: string): Promise<void>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+
+  getMailConfig(): Promise<MailConfig>;
+  updateMailConfig(data: Partial<InsertMailConfig>): Promise<MailConfig>;
+
+  createPasswordResetToken(data: InsertPasswordResetToken): Promise<PasswordResetToken>;
+  getPasswordResetToken(tokenHash: string): Promise<PasswordResetToken | undefined>;
+  markTokenUsed(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -440,6 +454,48 @@ export class DatabaseStorage implements IStorage {
       .where(eq(exerciseSubmissions.id, id))
       .returning();
     return updated;
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
+  }
+
+  async updateUserEmail(id: string, email: string): Promise<void> {
+    await db.update(users).set({ email }).where(eq(users.id, id));
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getMailConfig(): Promise<MailConfig> {
+    const configs = await db.select().from(mailConfig);
+    if (configs.length === 0) {
+      const [created] = await db.insert(mailConfig).values({}).returning();
+      return created;
+    }
+    return configs[0];
+  }
+
+  async updateMailConfig(data: Partial<InsertMailConfig>): Promise<MailConfig> {
+    const config = await this.getMailConfig();
+    const [updated] = await db.update(mailConfig).set(data).where(eq(mailConfig.id, config.id)).returning();
+    return updated;
+  }
+
+  async createPasswordResetToken(data: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const [created] = await db.insert(passwordResetTokens).values(data).returning();
+    return created;
+  }
+
+  async getPasswordResetToken(tokenHash: string): Promise<PasswordResetToken | undefined> {
+    const [token] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.tokenHash, tokenHash));
+    return token;
+  }
+
+  async markTokenUsed(id: string): Promise<void> {
+    await db.update(passwordResetTokens).set({ usedAt: new Date().toISOString() }).where(eq(passwordResetTokens.id, id));
   }
 }
 

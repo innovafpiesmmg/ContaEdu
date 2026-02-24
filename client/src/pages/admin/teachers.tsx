@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 
 export default function TeachersPage() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ fullName: "", username: "", password: "" });
+  const [form, setForm] = useState({ fullName: "", username: "", password: "", email: "" });
   const { toast } = useToast();
 
   const { data: teachers, isLoading } = useQuery<User[]>({ queryKey: ["/api/users/teachers"] });
@@ -26,7 +26,7 @@ export default function TeachersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/teachers"] });
       setOpen(false);
-      setForm({ fullName: "", username: "", password: "" });
+      setForm({ fullName: "", username: "", password: "", email: "" });
       toast({ title: "Profesor creado correctamente" });
     },
     onError: (err: Error) => {
@@ -77,6 +77,16 @@ export default function TeachersPage() {
                   value={form.username}
                   onChange={e => setForm({ ...form, username: e.target.value })}
                   placeholder="mgarcia"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Correo electrónico</Label>
+                <Input
+                  data-testid="input-teacher-email"
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  placeholder="profesor@centro.edu"
                 />
               </div>
               <div className="space-y-2">

@@ -5,9 +5,11 @@ import { db } from "./db";
 import { examAttempts } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { sendPasswordResetEmail } from "./mail";
 
 declare module "express-session" {
   interface SessionData {
@@ -91,7 +93,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password, fullName, enrollmentCode } = req.body;
+      const { username, password, fullName, enrollmentCode, email } = req.body;
       if (!username || !password || !fullName || !enrollmentCode) {
         return res.status(400).json({ message: "Todos los campos son obligatorios" });
       }
@@ -111,6 +113,7 @@ export async function registerRoutes(
         username,
         password: hashed,
         fullName,
+        email: email || null,
         role: "student",
         courseId: course.id,
         createdBy: course.teacherId,
@@ -138,6 +141,136 @@ export async function registerRoutes(
     req.session.destroy(() => {
       res.json({ ok: true });
     });
+  });
+
+  app.post("/api/auth/change-password", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "No autenticado" });
+      if (user.role === "admin") {
+        return res.status(403).json({ message: "El administrador debe cambiar su contraseña desde la consola del servidor" });
+      }
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Todos los campos son obligatorios" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "La nueva contraseña debe tener al menos 6 caracteres" });
+      }
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) {
+        return res.status(400).json({ message: "La contraseña actual es incorrecta" });
+      }
+      const hashed = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(user.id, hashed);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/auth/update-email", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "No autenticado" });
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "El correo es obligatorio" });
+      await storage.updateUserEmail(user.id, email);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "El correo electrónico es obligatorio" });
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.json({ ok: true, message: "Si el correo existe, recibirás un enlace de recuperación" });
+      }
+      if (user.role === "admin") {
+        return res.json({ ok: true, message: "Si el correo existe, recibirás un enlace de recuperación" });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+      await storage.createPasswordResetToken({ userId: user.id, tokenHash, expiresAt });
+
+      const protocol = req.headers["x-forwarded-proto"] || "http";
+      const host = req.headers["x-forwarded-host"] || req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      const sent = await sendPasswordResetEmail(user.email!, token, baseUrl);
+      if (!sent) {
+        return res.status(500).json({ message: "No se pudo enviar el correo. Contacta al administrador para que configure el servidor de correo." });
+      }
+
+      res.json({ ok: true, message: "Si el correo existe, recibirás un enlace de recuperación" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Datos incompletos" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres" });
+      }
+
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const resetToken = await storage.getPasswordResetToken(tokenHash);
+
+      if (!resetToken) {
+        return res.status(400).json({ message: "Enlace de recuperación no válido" });
+      }
+      if (resetToken.usedAt) {
+        return res.status(400).json({ message: "Este enlace ya ha sido utilizado" });
+      }
+      if (new Date(resetToken.expiresAt) < new Date()) {
+        return res.status(400).json({ message: "Este enlace ha expirado. Solicita uno nuevo." });
+      }
+
+      const hashed = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(resetToken.userId, hashed);
+      await storage.markTokenUsed(resetToken.id);
+
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Mail config (admin only)
+  app.get("/api/config/mail", requireRole("admin"), async (_req, res) => {
+    const config = await storage.getMailConfig();
+    res.json({ ...config, smtpPassword: config.smtpPassword ? "••••••••" : "" });
+  });
+
+  app.patch("/api/config/mail", requireRole("admin"), async (req, res) => {
+    try {
+      const { smtpHost, smtpPort, smtpUser, smtpPassword, smtpFrom, smtpSecure } = req.body;
+      const updateData: any = {};
+      if (smtpHost !== undefined) updateData.smtpHost = smtpHost;
+      if (smtpPort !== undefined) updateData.smtpPort = smtpPort;
+      if (smtpUser !== undefined) updateData.smtpUser = smtpUser;
+      if (smtpPassword !== undefined && smtpPassword !== "" && smtpPassword !== "••••••••") updateData.smtpPassword = smtpPassword;
+      if (smtpFrom !== undefined) updateData.smtpFrom = smtpFrom;
+      if (smtpSecure !== undefined) updateData.smtpSecure = smtpSecure;
+
+      const updated = await storage.updateMailConfig(updateData);
+      res.json({ ...updated, smtpPassword: updated.smtpPassword ? "••••••••" : "" });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
   });
 
   // School years
@@ -184,13 +317,13 @@ export async function registerRoutes(
 
   app.post("/api/users/teachers", requireRole("admin"), async (req: any, res) => {
     try {
-      const { fullName, username, password } = req.body;
+      const { fullName, username, password, email } = req.body;
       if (!fullName || !username || !password) return res.status(400).json({ message: "Faltan campos obligatorios" });
       const existing = await storage.getUserByUsername(username);
       if (existing) return res.status(400).json({ message: "El usuario ya existe" });
       const hashed = await bcrypt.hash(password, 10);
       const user = await storage.createUser({
-        fullName, username, password: hashed, role: "teacher", createdBy: req.user.id,
+        fullName, username, password: hashed, role: "teacher", createdBy: req.user.id, email: email || null,
       });
       const { password: _, ...safe } = user;
       res.json(safe);
