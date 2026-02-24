@@ -118,17 +118,48 @@ pm2 stop contaedu
 Cuando haya cambios en el repositorio de GitHub:
 
 ```bash
-# Acceder como usuario contaedu
+# Actualización rápida (como usuario contaedu)
 sudo su - contaedu
-
-# Ejecutar el script de actualización
 cd /var/www/contaedu
 ./deploy/deploy.sh
 ```
 
-El script descarga los últimos cambios de GitHub, instala dependencias, ejecuta migraciones, recompila y reinicia el servidor.
+### Actualización con cambio de dominio
 
-Para actualizar desde otra rama:
+```bash
+# Establecer o cambiar el dominio durante la actualización
+./deploy/deploy.sh --domain contaedu.micentro.es
+```
+
+Esto actualiza el código, reconfigura Nginx con el nuevo dominio, solicita certificado SSL automáticamente y establece la variable `APP_DOMAIN` en `.env` para que los enlaces de recuperación de contraseña usen la URL correcta.
+
+### Script avanzado de actualización (como root)
+
+Para actualizaciones más completas con backup automático de la base de datos:
+
+```bash
+# Actualización con backup automático
+sudo bash /var/www/contaedu/deploy/update.sh
+
+# Actualizar y configurar/cambiar dominio
+sudo bash /var/www/contaedu/deploy/update.sh --domain contaedu.micentro.es
+
+# Ver estado del servidor
+sudo bash /var/www/contaedu/deploy/update.sh --status
+
+# Restaurar un backup anterior
+sudo bash /var/www/contaedu/deploy/update.sh --rollback
+```
+
+| Parámetro | Descripción |
+|-----------|-------------|
+| `--domain <dominio>` | Establecer o cambiar el dominio (Nginx + SSL + .env) |
+| `--branch <rama>` | Rama de Git a desplegar (por defecto: main) |
+| `--skip-backup` | No hacer backup de la BD antes de actualizar |
+| `--rollback` | Restaurar el último backup de la base de datos |
+| `--status` | Mostrar estado completo del servidor |
+
+### Actualizar desde otra rama
 ```bash
 ./deploy/deploy.sh --branch develop
 ```

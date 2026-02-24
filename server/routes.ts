@@ -201,9 +201,16 @@ export async function registerRoutes(
 
       await storage.createPasswordResetToken({ userId: user.id, tokenHash, expiresAt });
 
-      const protocol = req.headers["x-forwarded-proto"] || "http";
-      const host = req.headers["x-forwarded-host"] || req.headers.host;
-      const baseUrl = `${protocol}://${host}`;
+      let baseUrl: string;
+      if (process.env.APP_DOMAIN) {
+        const domain = process.env.APP_DOMAIN.replace(/^https?:\/\//, "");
+        const scheme = process.env.FORCE_HTTP === "true" ? "http" : "https";
+        baseUrl = `${scheme}://${domain}`;
+      } else {
+        const protocol = req.headers["x-forwarded-proto"] || "http";
+        const host = req.headers["x-forwarded-host"] || req.headers.host;
+        baseUrl = `${protocol}://${host}`;
+      }
 
       const sent = await sendPasswordResetEmail(user.email!, token, baseUrl);
       if (!sent) {

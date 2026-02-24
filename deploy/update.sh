@@ -19,6 +19,8 @@ log_ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+NEW_DOMAIN=""
+
 show_help() {
   echo ""
   echo -e "${BLUE}ContaEdu — Script de Actualización${NC}"
@@ -27,10 +29,16 @@ show_help() {
   echo ""
   echo "Opciones:"
   echo "  --branch <rama>     Rama de Git a desplegar (por defecto: main)"
+  echo "  --domain <dominio>  Establecer o cambiar el dominio (configura Nginx + SSL + .env)"
   echo "  --skip-backup       No hacer backup de la base de datos antes de actualizar"
   echo "  --rollback          Restaurar el último backup de la base de datos"
   echo "  --status            Mostrar el estado actual de la aplicación"
   echo "  --help              Mostrar esta ayuda"
+  echo ""
+  echo "Ejemplos:"
+  echo "  sudo bash update.sh                          # Actualización normal"
+  echo "  sudo bash update.sh --domain contaedu.es     # Actualizar y configurar dominio"
+  echo "  sudo bash update.sh --domain contaedu.es --skip-backup"
   echo ""
   exit 0
 }
@@ -177,6 +185,7 @@ ACTION="update"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --branch) GIT_BRANCH="$2"; shift 2;;
+    --domain) NEW_DOMAIN="$2"; shift 2;;
     --skip-backup) SKIP_BACKUP=true; shift;;
     --rollback) ACTION="rollback"; shift;;
     --status) ACTION="status"; shift;;
@@ -282,6 +291,47 @@ else
   exit 1
 fi
 
+if [[ -n "$NEW_DOMAIN" ]]; then
+  log_info "=== Configurando dominio: ${NEW_DOMAIN} ==="
+
+  PORT=$(grep -oP 'PORT=\K[0-9]+' "${APP_DIR}/.env" 2>/dev/null || echo "5000")
+
+  if grep -q "^APP_DOMAIN=" "${APP_DIR}/.env"; then
+    sed -i "s/^APP_DOMAIN=.*/APP_DOMAIN=${NEW_DOMAIN}/" "${APP_DIR}/.env"
+  else
+    echo "APP_DOMAIN=${NEW_DOMAIN}" >> "${APP_DIR}/.env"
+  fi
+
+  if grep -q "^FORCE_HTTP=" "${APP_DIR}/.env"; then
+    sed -i "s/^FORCE_HTTP=.*/FORCE_HTTP=false/" "${APP_DIR}/.env"
+  else
+    echo "FORCE_HTTP=false" >> "${APP_DIR}/.env"
+  fi
+  log_ok "Variable APP_DOMAIN establecida en .env"
+
+  sed "s/TU_DOMINIO/${NEW_DOMAIN}/g; s/PUERTO/${PORT}/g" "${APP_DIR}/deploy/nginx.conf" > "/etc/nginx/sites-available/${APP_NAME}"
+  ln -sf "/etc/nginx/sites-available/${APP_NAME}" "/etc/nginx/sites-enabled/${APP_NAME}"
+  rm -f /etc/nginx/sites-enabled/default
+
+  if nginx -t > /dev/null 2>&1; then
+    systemctl reload nginx
+    log_ok "Nginx configurado para ${NEW_DOMAIN}"
+  else
+    log_error "Error en la configuración de Nginx"
+    nginx -t
+  fi
+
+  if command -v certbot &> /dev/null; then
+    log_info "Configurando SSL con Let's Encrypt..."
+    certbot --nginx -d "${NEW_DOMAIN}" --non-interactive --agree-tos --register-unsafely-without-email || log_warn "SSL no configurado (asegúrate de que el dominio apunta a este servidor)"
+  else
+    log_warn "Certbot no instalado, instálalo para SSL: apt install certbot python3-certbot-nginx"
+  fi
+
+  run_as_app "${PM2_BIN} restart ${APP_NAME}"
+  log_ok "Aplicación reiniciada con nuevo dominio"
+fi
+
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║   Actualización completada correctamente     ║${NC}"
@@ -289,6 +339,9 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo -e "  ${BLUE}Versión anterior:${NC} ${CURRENT_COMMIT}"
 echo -e "  ${BLUE}Versión actual:${NC}   $(cd "${APP_DIR}" && git log -1 --format='%h')"
+if [[ -n "$NEW_DOMAIN" ]]; then
+  echo -e "  ${BLUE}Dominio:${NC}          https://${NEW_DOMAIN}"
+fi
 echo ""
 run_as_app "${PM2_BIN} status"
 echo ""
