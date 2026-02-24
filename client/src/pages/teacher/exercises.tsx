@@ -21,36 +21,47 @@ interface SubmissionWithStudent extends ExerciseSubmission {
 }
 
 function generateExerciseTemplate(): string {
-  return `# Ejercicio: Asiento de compra con IVA
+  return `# Ejercicio: Operaciones de compraventa con IVA
 
 **Tipo:** practice
 
 ## Descripción
-Registrar la compra de mercaderías por valor de 1.000 EUR más IVA del 21%.
-La empresa CompraFácil S.L. adquiere mercaderías a un proveedor.
+La empresa TextilSur S.L. realiza las siguientes operaciones durante el mes de marzo:
+
+1. Compra mercaderías al proveedor Hilaturas del Norte por 5.000 EUR + IVA 21%. Pago a 30 días.
+2. Vende productos al cliente Modas López por 8.000 EUR + IVA 21%. Cobro a 60 días.
+3. Devuelve mercaderías defectuosas al proveedor por valor de 500 EUR + IVA 21%.
+4. El cliente Modas López paga la factura mediante transferencia bancaria.
+5. Se paga al proveedor Hilaturas del Norte la factura pendiente.
+
+Registrar todos los asientos contables correspondientes.
 
 ---
 
-# Ejercicio: Venta de servicios
+# Ejercicio: Ciclo contable de nóminas
 
 **Tipo:** guided
 
 ## Descripción
-Registrar la venta de servicios de consultoría por 2.500 EUR más IVA del 21%.
-El cliente paga mediante transferencia bancaria.
+La empresa ServiPlus S.L. debe contabilizar las nóminas del mes de enero con los siguientes datos:
 
----
-
-# Ejercicio: Nómina del mes
-
-**Tipo:** practice
-
-## Descripción
-Contabilizar la nómina del mes de enero:
+Trabajador A:
 - Sueldo bruto: 2.000 EUR
 - Seguridad Social trabajador: 127 EUR
-- IRPF: 300 EUR
+- Retención IRPF: 300 EUR
 - Seguridad Social empresa: 600 EUR
+
+Trabajador B:
+- Sueldo bruto: 1.500 EUR
+- Seguridad Social trabajador: 95 EUR
+- Retención IRPF: 180 EUR
+- Seguridad Social empresa: 450 EUR
+
+Registrar:
+1. El devengo de las nóminas
+2. El pago de los salarios netos por banco
+3. La liquidación a la Seguridad Social
+4. El ingreso de las retenciones de IRPF
 `;
 }
 
@@ -436,7 +447,7 @@ export default function ExercisesPage() {
                 data-testid="textarea-import-exercises"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Ejercicio: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción del ejercicio...\n\n---\n\n# Ejercicio: Otro ejercicio\n...`}
+                placeholder={`# Ejercicio: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción con las operaciones a contabilizar:\n1. Primera operación...\n2. Segunda operación...\n\n---\n\n# Ejercicio: Otro ejercicio\n...`}
                 className="font-mono text-xs"
                 rows={12}
               />

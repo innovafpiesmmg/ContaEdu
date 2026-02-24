@@ -80,13 +80,17 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 
 ## MD Import Templates
 ### Exercise Template Format
+Each exercise can describe multiple accounting entries (asientos) within a single exercise.
 ```md
 # Ejercicio: Title
 
 **Tipo:** practice|guided
 
 ## Descripción
-Exercise description text...
+Description with multiple operations to record:
+1. First operation...
+2. Second operation...
+3. Third operation...
 
 ---
 (separator between exercises)
