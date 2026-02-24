@@ -352,17 +352,17 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       </section>
 
       <footer className="relative z-10 border-t py-6 mt-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col items-center gap-2">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <BookOpen className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+          <div className="flex items-center gap-2 text-center sm:text-left">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <BookOpen className="w-3.5 h-3.5 text-primary-foreground" />
+            </div>
+            <div>
               <span className="text-sm font-medium">ContaEdu</span>
-              <span className="text-xs text-muted-foreground">— Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González</span>
+              <p className="text-xs text-muted-foreground">Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-4 w-auto" data-testid="img-asd-logo" />
             <span className="text-[11px] text-muted-foreground">Software desarrollado por Atreyu Servicios Digitales</span>
           </div>
