@@ -130,7 +130,8 @@ Fecha: 2024-02-15
 
 function parseSolutionMD(md: string): SolutionEntry[] {
   const entries: SolutionEntry[] = [];
-  const blocks = md.split(/(?=##\s+Asiento\s+\d+)/i).map(b => b.trim()).filter(Boolean);
+  const cleaned = md.replace(/^\uFEFF/, "");
+  const blocks = cleaned.split(/(?=##\s+Asiento\s+\d+)/i).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
     const headerMatch = block.match(/^##\s+Asiento\s+(\d+)\s*[:\-]?\s*(.*)$/im);
@@ -228,13 +229,14 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
 
 function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> {
   const exercises: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> = [];
-  const blocks = md.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
+  const cleaned = md.replace(/^\uFEFF/, "");
+  const blocks = cleaned.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
-    const titleMatch = block.match(/^#\s+Ejercicio:\s*(.+)$/m);
+    const titleMatch = block.match(/^\s*#\s+Ejercicio:\s*(.+)$/m);
     const typeMatch = block.match(/\*\*Tipo:\*\*\s*(practice|guided)/i);
 
-    const solutionSplit = block.split(/^##\s+Soluci[oó]n\s*$/im);
+    const solutionSplit = block.split(/^\s*##\s+Soluci[oó]n\s*$/im);
     const mainBlock = solutionSplit[0];
     const solutionBlock = solutionSplit.length > 1 ? solutionSplit[1] : null;
 
