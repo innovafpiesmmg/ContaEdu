@@ -268,11 +268,17 @@ run_as_app "cd ${APP_DIR} && npm install --production=false 2>&1" | tail -1
 log_ok "Dependencias instaladas"
 
 log_info "=== Paso 4/5: Migraciones y compilación ==="
-run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && npx drizzle-kit migrate 2>&1" | tail -5 || {
+MIGRATE_LOG=$(mktemp)
+if run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && npx drizzle-kit migrate 2>&1" > "$MIGRATE_LOG" 2>&1; then
+  tail -5 "$MIGRATE_LOG"
+  log_ok "Migraciones aplicadas"
+else
   log_warn "Migrate falló, intentando push..."
-  run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && script -qec 'npx drizzle-kit push --force' /dev/null < /dev/null 2>&1" | tail -5
-}
-log_ok "Migraciones ejecutadas"
+  run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && script -qec 'npx drizzle-kit push --force' /dev/null < /dev/null 2>&1" > "$MIGRATE_LOG" 2>&1 || true
+  tail -5 "$MIGRATE_LOG"
+  log_ok "Schema sincronizado con push"
+fi
+rm -f "$MIGRATE_LOG"
 
 run_as_app "cd ${APP_DIR} && npm run build 2>&1" | tail -3
 log_ok "Aplicación compilada"

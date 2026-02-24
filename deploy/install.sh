@@ -177,10 +177,17 @@ log_info "Instalando dependencias..."
 sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm install --production=false 2>&1" | tail -1
 
 log_info "Ejecutando migraciones de base de datos..."
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}' npx drizzle-kit migrate 2>&1" | tail -5 || {
+MIGRATE_LOG=$(mktemp)
+if sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}' npx drizzle-kit migrate 2>&1" > "$MIGRATE_LOG" 2>&1; then
+  tail -5 "$MIGRATE_LOG"
+  log_ok "Migraciones aplicadas"
+else
   log_warn "Migrate falló, intentando push..."
-  sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}' script -qec 'npx drizzle-kit push --force' /dev/null < /dev/null 2>&1" | tail -5
-}
+  sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}' script -qec 'npx drizzle-kit push --force' /dev/null < /dev/null 2>&1" > "$MIGRATE_LOG" 2>&1 || true
+  tail -5 "$MIGRATE_LOG"
+  log_ok "Schema sincronizado con push"
+fi
+rm -f "$MIGRATE_LOG"
 
 log_info "Compilando aplicación..."
 sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm run build 2>&1" | tail -3
