@@ -233,7 +233,7 @@ function parseExercisesMD(md: string): Array<{ title: string; description: strin
   const blocks = cleaned.split(/\n\s*---\s*\n/).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
-    const titleMatch = block.match(/^\s*#\s+Ejercicio:\s*(.+)$/m);
+    const titleMatch = block.match(/^\s*#\s+Ejercicio(?:\s+\d+)?:\s*(.+)$/m);
     const typeMatch = block.match(/\*\*Tipo:\*\*\s*(practice|guided)/i);
 
     const solutionSplit = block.split(/^\s*##\s+Soluci[oó]n\s*$/im);
@@ -889,7 +889,7 @@ export default function ExercisesPage() {
                 data-testid="textarea-import-exercises"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder={`# Ejercicio: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción con las operaciones a contabilizar:\n1. Primera operación...\n2. Segunda operación...\n\n---\n\n# Ejercicio: Otro ejercicio\n...`}
+                placeholder={`# Ejercicio 1: Título del ejercicio\n\n**Tipo:** practice\n\n## Descripción\nDescripción con las operaciones a contabilizar:\n1. Primera operación...\n2. Segunda operación...\n\n---\n\n# Ejercicio 2: Otro ejercicio\n...`}
                 className="font-mono text-xs"
                 rows={12}
               />
