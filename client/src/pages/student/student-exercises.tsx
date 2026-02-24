@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, BookOpen, PenLine, CheckCircle2, Send, Star, MessageSquare, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { ClipboardList, BookOpen, PenLine, CheckCircle2, Send, Star, MessageSquare, Eye, ChevronDown, ChevronUp, Paperclip, FileText, File } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Exercise, ExerciseSubmission } from "@shared/schema";
+import type { Exercise, ExerciseSubmission, ExerciseDocument } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface SolutionLine {
@@ -28,6 +28,91 @@ interface SolutionEntry {
   date: string;
   description: string;
   lines: SolutionLine[];
+}
+
+function ExerciseDocumentsViewer({ exerciseId }: { exerciseId: string }) {
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+
+  const { data: documents } = useQuery<ExerciseDocument[]>({
+    queryKey: ["/api/exercises", exerciseId, "documents"],
+    queryFn: () => fetch(`/api/exercises/${exerciseId}/documents`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  if (!documents || documents.length === 0) return null;
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Paperclip className="w-4 h-4 text-blue-600" />
+        <span className="text-sm font-medium">Documentos del ejercicio</span>
+        <Badge variant="outline" className="text-xs">{documents.length}</Badge>
+      </div>
+      <div className="space-y-1.5">
+        {documents.map(doc => (
+          <div key={doc.id}>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/uploads/documents/${doc.fileName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                data-testid={`student-doc-link-${doc.id}`}
+              >
+                {doc.mimeType === "application/pdf" ? (
+                  <FileText className="w-4 h-4 shrink-0" />
+                ) : (
+                  <File className="w-4 h-4 shrink-0" />
+                )}
+                <span className="truncate">{doc.originalName}</span>
+              </a>
+              {doc.mimeType === "application/pdf" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setViewingDoc(viewingDoc === doc.id ? null : doc.id)}
+                  data-testid={`button-preview-doc-${doc.id}`}
+                >
+                  {viewingDoc === doc.id ? <ChevronUp className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {viewingDoc === doc.id ? "Ocultar" : "Vista previa"}
+                </Button>
+              )}
+              {doc.mimeType.startsWith("image/") && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setViewingDoc(viewingDoc === doc.id ? null : doc.id)}
+                  data-testid={`button-preview-doc-${doc.id}`}
+                >
+                  {viewingDoc === doc.id ? <ChevronUp className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {viewingDoc === doc.id ? "Ocultar" : "Ver imagen"}
+                </Button>
+              )}
+            </div>
+            {viewingDoc === doc.id && doc.mimeType === "application/pdf" && (
+              <div className="mt-2 border rounded-lg overflow-hidden" data-testid={`pdf-viewer-${doc.id}`}>
+                <iframe
+                  src={`/uploads/documents/${doc.fileName}`}
+                  className="w-full h-[600px]"
+                  title={doc.originalName}
+                />
+              </div>
+            )}
+            {viewingDoc === doc.id && doc.mimeType.startsWith("image/") && (
+              <div className="mt-2 border rounded-lg overflow-hidden p-2" data-testid={`image-viewer-${doc.id}`}>
+                <img
+                  src={`/uploads/documents/${doc.fileName}`}
+                  alt={doc.originalName}
+                  className="max-w-full rounded"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function StudentExercisesPage() {
@@ -133,6 +218,8 @@ export default function StudentExercisesPage() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{ex.description}</p>
+
+                      <ExerciseDocumentsViewer exerciseId={ex.id} />
 
                       {isReviewed && sub && (
                         <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">

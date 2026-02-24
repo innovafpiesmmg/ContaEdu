@@ -9,10 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2 } from "lucide-react";
+import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2, Paperclip, X, File } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import type { Exercise, Course, ExerciseSubmission } from "@shared/schema";
+import type { Exercise, Course, ExerciseSubmission, ExerciseDocument } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
@@ -204,12 +204,55 @@ function ExerciseCard({
   submissions?: SubmissionWithStudent[];
   onReview: (s: SubmissionWithStudent) => void;
 }) {
+  const { toast } = useToast();
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [showDocs, setShowDocs] = useState(false);
+
   const { data: assignedCourseIds } = useQuery<string[]>({
     queryKey: ["/api/exercises", ex.id, "courses"],
     queryFn: () => fetch(`/api/exercises/${ex.id}/courses`, { credentials: "include" }).then(r => r.json()),
   });
 
+  const { data: documents } = useQuery<ExerciseDocument[]>({
+    queryKey: ["/api/exercises", ex.id, "documents"],
+    queryFn: () => fetch(`/api/exercises/${ex.id}/documents`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const uploadDocsMutation = useMutation({
+    mutationFn: async (files: FileList) => {
+      const formData = new FormData();
+      Array.from(files).forEach(f => formData.append("files", f));
+      const res = await fetch(`/api/exercises/${ex.id}/documents`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", ex.id, "documents"] });
+      toast({ title: "Documentos subidos correctamente" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (docId: string) =>
+      fetch(`/api/exercises/${ex.id}/documents/${docId}`, { method: "DELETE", credentials: "include" }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", ex.id, "documents"] });
+      toast({ title: "Documento eliminado" });
+    },
+  });
+
   const assignedCourses = courses.filter(c => assignedCourseIds?.includes(c.id));
+  const docCount = documents?.length || 0;
 
   return (
     <Card className="hover-elevate" data-testid={`exercise-card-${ex.id}`}>
@@ -230,6 +273,12 @@ function ExerciseCard({
                 <Badge variant={ex.exerciseType === "guided" ? "default" : "secondary"}>
                   {ex.exerciseType === "guided" ? "Guiado" : "Práctica"}
                 </Badge>
+                {docCount > 0 && (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Paperclip className="w-3 h-3" />
+                    {docCount} doc{docCount !== 1 ? "s" : ""}
+                  </Badge>
+                )}
                 {assignedCourses.length > 0 ? (
                   assignedCourses.map(c => (
                     <Badge key={c.id} variant="outline" className="text-xs">{c.name}</Badge>
@@ -277,6 +326,15 @@ function ExerciseCard({
                 )}
               </PopoverContent>
             </Popover>
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Documentos adjuntos"
+              onClick={() => setShowDocs(!showDocs)}
+              data-testid={`button-toggle-docs-${ex.id}`}
+            >
+              <Paperclip className={`w-4 h-4 ${docCount > 0 ? "text-blue-600" : "text-muted-foreground"}`} />
+            </Button>
             {ex.solution ? (
               <Button size="icon" variant="ghost" onClick={onViewSolution} data-testid={`button-view-solution-${ex.id}`} title="Ver solución">
                 <CheckCircle className="w-4 h-4 text-green-600" />
@@ -294,6 +352,78 @@ function ExerciseCard({
             </Button>
           </div>
         </div>
+
+        {showDocs && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium flex items-center gap-1.5">
+                <Paperclip className="w-4 h-4" /> Documentos adjuntos
+              </h4>
+              <div>
+                <input
+                  ref={docInputRef}
+                  type="file"
+                  accept=".pdf,image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      uploadDocsMutation.mutate(e.target.files);
+                    }
+                    e.target.value = "";
+                  }}
+                  data-testid={`input-upload-docs-${ex.id}`}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => docInputRef.current?.click()}
+                  disabled={uploadDocsMutation.isPending}
+                  data-testid={`button-upload-docs-${ex.id}`}
+                >
+                  <Upload className="w-3.5 h-3.5 mr-1.5" />
+                  {uploadDocsMutation.isPending ? "Subiendo..." : "Subir PDF / Imagen"}
+                </Button>
+              </div>
+            </div>
+            {documents && documents.length > 0 ? (
+              <div className="space-y-1.5">
+                {documents.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2" data-testid={`doc-row-${doc.id}`}>
+                    <a
+                      href={`/uploads/documents/${doc.fileName}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-primary hover:underline truncate"
+                      data-testid={`link-doc-${doc.id}`}
+                    >
+                      {doc.mimeType === "application/pdf" ? (
+                        <FileText className="w-4 h-4 shrink-0" />
+                      ) : (
+                        <File className="w-4 h-4 shrink-0" />
+                      )}
+                      <span className="truncate">{doc.originalName}</span>
+                    </a>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground">{(doc.fileSize / 1024).toFixed(0)} KB</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => deleteDocMutation.mutate(doc.id)}
+                        data-testid={`button-delete-doc-${doc.id}`}
+                      >
+                        <X className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No hay documentos adjuntos. Sube PDFs o imágenes de documentos contables.</p>
+            )}
+          </div>
+        )}
 
         {showSubmissions && (
           <div className="mt-4 pt-4 border-t">
