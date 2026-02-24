@@ -51,7 +51,7 @@ log_info "Instalando dependencias..."
 npm install --production=false 2>&1 | tail -1
 
 log_info "Ejecutando migraciones..."
-npx drizzle-kit push --force 2>&1 | tail -3
+echo 'yes' | npx drizzle-kit push --force 2>&1 | tail -3
 
 log_info "Compilando aplicación..."
 npm run build 2>&1 | tail -3

@@ -268,7 +268,7 @@ run_as_app "cd ${APP_DIR} && npm install --production=false 2>&1" | tail -1
 log_ok "Dependencias instaladas"
 
 log_info "=== Paso 4/5: Migraciones y compilación ==="
-run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && npx drizzle-kit push --force 2>&1" | tail -3
+run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && echo 'yes' | npx drizzle-kit push --force 2>&1" | tail -3
 log_ok "Migraciones ejecutadas"
 
 run_as_app "cd ${APP_DIR} && npm run build 2>&1" | tail -3

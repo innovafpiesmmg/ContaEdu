@@ -177,7 +177,7 @@ log_info "Instalando dependencias..."
 sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm install --production=false 2>&1" | tail -1
 
 log_info "Ejecutando migraciones de base de datos..."
-sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}' npx drizzle-kit push --force 2>&1" | tail -3
+sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && echo 'yes' | DATABASE_URL='${DATABASE_URL}' npx drizzle-kit push --force 2>&1" | tail -3
 
 log_info "Compilando aplicación..."
 sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && npm run build 2>&1" | tail -3
