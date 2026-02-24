@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   BookOpen,
+  BookOpenText,
   LayoutDashboard,
   Users,
   GraduationCap,
@@ -54,11 +55,12 @@ export function AppSidebar() {
 
   const studentItems = [
     { title: "Mi Escritorio", url: "/", icon: LayoutDashboard },
+    { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
     { title: "Libro Diario", url: "/journal", icon: BookOpenCheck },
     { title: "Libro Mayor", url: "/ledger", icon: FileText },
     { title: "Balances", url: "/balances", icon: BarChart3 },
     { title: "Plan de Cuentas", url: "/accounts", icon: BookOpen },
-    { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
+    { title: "Manual Contable", url: "/manual", icon: BookOpenText },
   ];
 
   const items = user.role === "admin" ? adminItems : user.role === "teacher" ? teacherItems : studentItems;

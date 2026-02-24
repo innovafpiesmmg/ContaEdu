@@ -47,7 +47,9 @@ export interface IStorage {
   deleteCourse(id: string): Promise<void>;
 
   getAccounts(): Promise<Account[]>;
+  getAccountsForUser(userId: string): Promise<Account[]>;
   createAccount(account: InsertAccount): Promise<Account>;
+  deleteAccount(id: string, userId: string): Promise<void>;
 
   getExercises(): Promise<Exercise[]>;
   getExercisesByTeacher(teacherId: string): Promise<Exercise[]>;
@@ -166,12 +168,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAccounts(): Promise<Account[]> {
-    return db.select().from(accounts);
+    return db.select().from(accounts).where(eq(accounts.isSystem, true));
+  }
+
+  async getAccountsForUser(userId: string): Promise<Account[]> {
+    const systemAccounts = await db.select().from(accounts).where(eq(accounts.isSystem, true));
+    const userAccounts = await db.select().from(accounts).where(eq(accounts.userId, userId));
+    return [...systemAccounts, ...userAccounts].sort((a, b) => a.code.localeCompare(b.code));
   }
 
   async createAccount(account: InsertAccount): Promise<Account> {
     const [created] = await db.insert(accounts).values(account).returning();
     return created;
+  }
+
+  async deleteAccount(id: string, userId: string): Promise<void> {
+    await db.delete(accounts).where(
+      and(eq(accounts.id, id), eq(accounts.isSystem, false), eq(accounts.userId, userId))
+    );
   }
 
   async getExercises(): Promise<Exercise[]> {

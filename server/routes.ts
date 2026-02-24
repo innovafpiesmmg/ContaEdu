@@ -285,9 +285,44 @@ export async function registerRoutes(
   });
 
   // Accounts
-  app.get("/api/accounts", requireAuth, async (_req, res) => {
-    const accs = await storage.getAccounts();
-    res.json(accs);
+  app.get("/api/accounts", requireAuth, async (req: any, res) => {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "No autenticado" });
+    if (user.role === "student") {
+      const accs = await storage.getAccountsForUser(user.id);
+      res.json(accs);
+    } else {
+      const accs = await storage.getAccounts();
+      res.json(accs);
+    }
+  });
+
+  app.post("/api/accounts", requireRole("student"), async (req: any, res) => {
+    try {
+      const { code, name, accountType } = req.body;
+      if (!code || !name || !accountType) {
+        return res.status(400).json({ message: "Faltan campos obligatorios" });
+      }
+      const existing = await storage.getAccountsForUser(req.user.id);
+      if (existing.find(a => a.code === code)) {
+        return res.status(400).json({ message: `Ya existe una cuenta con el codigo ${code}` });
+      }
+      const account = await storage.createAccount({
+        code,
+        name,
+        accountType,
+        isSystem: false,
+        userId: req.user.id,
+      });
+      res.json(account);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/accounts/:id", requireRole("student"), async (req: any, res) => {
+    await storage.deleteAccount(req.params.id, req.user.id);
+    res.json({ ok: true });
   });
 
   // Exercises

@@ -45,6 +45,7 @@ export const accounts = pgTable("accounts", {
   accountType: accountTypeEnum("account_type").notNull(),
   parentCode: text("parent_code"),
   isSystem: boolean("is_system").notNull().default(false),
+  userId: varchar("user_id"),
 });
 
 export const exercises = pgTable("exercises", {

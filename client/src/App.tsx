@@ -29,6 +29,7 @@ import LedgerPage from "@/pages/student/ledger";
 import BalancesPage from "@/pages/student/balances";
 import AccountsPage from "@/pages/student/accounts";
 import StudentExercisesPage from "@/pages/student/student-exercises";
+import ManualPage from "@/pages/student/manual";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function AdminRouter() {
@@ -65,6 +66,7 @@ function StudentRouter() {
       <Route path="/balances" component={BalancesPage} />
       <Route path="/accounts" component={AccountsPage} />
       <Route path="/exercises" component={StudentExercisesPage} />
+      <Route path="/manual" component={ManualPage} />
       <Route component={NotFound} />
     </Switch>
   );

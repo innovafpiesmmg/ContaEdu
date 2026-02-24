@@ -1,11 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Plus, Trash2, Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import { useState } from "react";
-import { Search } from "lucide-react";
 import type { Account } from "@shared/schema";
 import { motion } from "framer-motion";
 
@@ -27,7 +33,32 @@ const typeColors: Record<string, string> = {
 
 export default function AccountsPage() {
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ code: "", name: "", accountType: "" });
   const { data: accounts, isLoading } = useQuery<Account[]>({ queryKey: ["/api/accounts"] });
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const createMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/accounts", form),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+      setOpen(false);
+      setForm({ code: "", name: "", accountType: "" });
+      toast({ title: "Cuenta creada correctamente" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/accounts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+      toast({ title: "Cuenta eliminada" });
+    },
+  });
 
   const filtered = accounts?.filter(a =>
     a.code.includes(search) || a.name.toLowerCase().includes(search.toLowerCase())
@@ -41,7 +72,7 @@ export default function AccountsPage() {
   }, {} as Record<string, Account[]>);
 
   const groupNames: Record<string, string> = {
-    "1": "Financiación Básica",
+    "1": "Financiacion Basica",
     "2": "Activo No Corriente",
     "3": "Existencias",
     "4": "Acreedores y Deudores",
@@ -50,18 +81,84 @@ export default function AccountsPage() {
     "7": "Ventas e Ingresos",
   };
 
+  const isStudent = user?.role === "student";
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Plan de Cuentas</h1>
-        <p className="text-muted-foreground text-sm mt-1">Plan General de Contabilidad (PGC)</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Plan de Cuentas</h1>
+          <p className="text-muted-foreground text-sm mt-1">Plan General de Contabilidad (PGC)</p>
+        </div>
+        {isStudent && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-add-account">
+                <Plus className="w-4 h-4 mr-2" />
+                Nueva Cuenta
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Anadir Cuenta al PGC</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Codigo de Cuenta</Label>
+                  <Input
+                    data-testid="input-account-code"
+                    value={form.code}
+                    onChange={e => setForm({ ...form, code: e.target.value })}
+                    placeholder="Ej: 431, 5200..."
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Introduce un codigo numerico siguiendo la estructura del PGC
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nombre de la Cuenta</Label>
+                  <Input
+                    data-testid="input-account-name"
+                    value={form.name}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    placeholder="Ej: Clientes, efectos comerciales a cobrar"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de Cuenta</Label>
+                  <Select value={form.accountType} onValueChange={v => setForm({ ...form, accountType: v })}>
+                    <SelectTrigger data-testid="select-account-type">
+                      <SelectValue placeholder="Seleccionar tipo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asset">Activo</SelectItem>
+                      <SelectItem value="liability">Pasivo</SelectItem>
+                      <SelectItem value="equity">Patrimonio Neto</SelectItem>
+                      <SelectItem value="income">Ingreso</SelectItem>
+                      <SelectItem value="expense">Gasto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  data-testid="button-save-account"
+                  className="w-full"
+                  onClick={() => createMutation.mutate()}
+                  disabled={!form.code || !form.name || !form.accountType || createMutation.isPending}
+                >
+                  {createMutation.isPending ? "Creando..." : "Anadir Cuenta"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           data-testid="input-search-accounts"
-          placeholder="Buscar por código o nombre..."
+          placeholder="Buscar por codigo o nombre..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="pl-10"
@@ -94,10 +191,26 @@ export default function AccountsPage() {
                       <div className="flex items-center gap-3">
                         <span className="font-mono text-sm text-muted-foreground w-12">{account.code}</span>
                         <span className="text-sm">{account.name}</span>
+                        {!account.isSystem && (
+                          <Badge variant="outline" className="text-[10px]">Personal</Badge>
+                        )}
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-md ${typeColors[account.accountType] || ""}`}>
-                        {typeLabels[account.accountType] || account.accountType}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-md ${typeColors[account.accountType] || ""}`}>
+                          {typeLabels[account.accountType] || account.accountType}
+                        </span>
+                        {isStudent && !account.isSystem && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => deleteMutation.mutate(account.id)}
+                            data-testid={`button-delete-account-${account.code}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </CardContent>
