@@ -139,25 +139,74 @@ Usa las credenciales por defecto para acceder:
 
 ## Actualización
 
-Para actualizar ContaEdu con la última versión del repositorio:
+ContaEdu incluye un script de actualización completo (`deploy/update.sh`) que gestiona todo el proceso de forma segura: backup automático, descarga de cambios, compilación y reinicio.
+
+### Actualización estándar
 
 ```bash
-sudo bash /var/www/contaedu/deploy/deploy.sh
+sudo bash /var/www/contaedu/deploy/update.sh
 ```
 
-Este script automáticamente:
+El script ejecuta automáticamente estos 5 pasos:
 
-1. Descarga los últimos cambios desde GitHub
-2. Instala nuevas dependencias (si las hay)
-3. Ejecuta migraciones de base de datos
-4. Recompila la aplicación
-5. Reinicia el servidor
+1. **Backup** de la base de datos (comprimido con gzip, se conservan los últimos 10)
+2. **Descarga** los últimos cambios desde GitHub
+3. **Instala** nuevas dependencias (si las hay)
+4. **Ejecuta** migraciones y recompila la aplicación
+5. **Reinicia** el servidor y verifica que arranca correctamente
 
-Para actualizar desde una rama diferente:
+### Opciones del script de actualización
 
 ```bash
-sudo bash /var/www/contaedu/deploy/deploy.sh --branch desarrollo
+# Actualizar desde una rama diferente
+sudo bash /var/www/contaedu/deploy/update.sh --branch desarrollo
+
+# Actualizar sin hacer backup (no recomendado)
+sudo bash /var/www/contaedu/deploy/update.sh --skip-backup
+
+# Ver el estado completo del servidor
+sudo bash /var/www/contaedu/deploy/update.sh --status
+
+# Restaurar un backup anterior (rollback)
+sudo bash /var/www/contaedu/deploy/update.sh --rollback
+
+# Ver ayuda
+sudo bash /var/www/contaedu/deploy/update.sh --help
 ```
+
+| Parámetro | Descripción |
+|---|---|
+| `--branch <rama>` | Rama de Git a desplegar (por defecto: `main`) |
+| `--skip-backup` | No hacer backup de la base de datos antes de actualizar |
+| `--status` | Mostrar el estado actual de la aplicación, base de datos, servicios y sistema |
+| `--rollback` | Restaurar la base de datos desde un backup anterior (muestra lista interactiva) |
+| `--help` | Mostrar la ayuda del script |
+
+### Ver el estado del servidor
+
+El comando `--status` muestra un resumen completo:
+
+```bash
+sudo bash /var/www/contaedu/deploy/update.sh --status
+```
+
+Incluye:
+- Estado de la aplicación (PM2)
+- Versión del código (rama y último commit)
+- Estado y tamaño de la base de datos
+- Backups disponibles (número y fecha del último)
+- Estado de servicios (Nginx, PostgreSQL)
+- Uso de disco y memoria del servidor
+
+### Rollback (restaurar un backup)
+
+Si una actualización causa problemas, puedes restaurar la base de datos desde un backup anterior:
+
+```bash
+sudo bash /var/www/contaedu/deploy/update.sh --rollback
+```
+
+El script mostrará la lista de backups disponibles y te permitirá elegir cuál restaurar. Los backups se guardan en `/var/backups/contaedu/` y se conservan los últimos 10 automáticamente.
 
 ---
 
@@ -213,12 +262,14 @@ cat /var/log/contaedu/error.log
 # Conectarse a la base de datos
 sudo -u postgres psql contaedu_db
 
-# Hacer backup
-sudo -u postgres pg_dump contaedu_db > backup_$(date +%Y%m%d).sql
+# Backup manual
+sudo -u postgres pg_dump contaedu_db | gzip > backup_$(date +%Y%m%d).sql.gz
 
-# Restaurar backup
-sudo -u postgres psql contaedu_db < backup_20250224.sql
+# Restaurar backup manual
+gunzip -c backup_20250224.sql.gz | sudo -u postgres psql contaedu_db
 ```
+
+> **Nota:** El script de actualización crea backups automáticos antes de cada actualización en `/var/backups/contaedu/`.
 
 ---
 
@@ -239,8 +290,9 @@ ContaEdu/
 ├── shared/
 │   └── schema.ts            # Modelos de datos (Drizzle ORM)
 ├── deploy/                  # Scripts de despliegue
-│   ├── install.sh           # Instalación completa
-│   ├── deploy.sh            # Actualización
+│   ├── install.sh           # Instalación completa desde cero
+│   ├── update.sh            # Actualización con backup y rollback
+│   ├── deploy.sh            # Actualización rápida (sin backup)
 │   ├── ecosystem.config.cjs # Configuración PM2
 │   ├── nginx.conf           # Plantilla Nginx
 │   └── env.example          # Plantilla de variables de entorno
