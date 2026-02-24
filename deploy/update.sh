@@ -274,7 +274,7 @@ if run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && npx driz
   log_ok "Migraciones aplicadas"
 else
   log_warn "Migrate falló, intentando push..."
-  run_as_app "cd ${APP_DIR} && export \$(grep -v '^#' .env | xargs) && script -qec 'npx drizzle-kit push --force' /dev/null < /dev/null 2>&1" > "$MIGRATE_LOG" 2>&1 || true
+  timeout 60 bash -c "sudo -u ${APP_USER} HOME=/home/${APP_USER} bash -c 'cd ${APP_DIR} && export \$(grep -v \"^#\" .env | xargs) && CI=1 npx drizzle-kit push --force' < /dev/null" > "$MIGRATE_LOG" 2>&1 || true
   tail -5 "$MIGRATE_LOG"
   log_ok "Schema sincronizado con push"
 fi

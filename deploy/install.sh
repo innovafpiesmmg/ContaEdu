@@ -183,7 +183,7 @@ if sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}
   log_ok "Migraciones aplicadas"
 else
   log_warn "Migrate falló, intentando push..."
-  sudo -u "${APP_USER}" bash -c "cd ${APP_DIR} && DATABASE_URL='${DATABASE_URL}' script -qec 'npx drizzle-kit push --force' /dev/null < /dev/null 2>&1" > "$MIGRATE_LOG" 2>&1 || true
+  timeout 60 bash -c "sudo -u ${APP_USER} bash -c 'cd ${APP_DIR} && DATABASE_URL=\"${DATABASE_URL}\" CI=1 npx drizzle-kit push --force' < /dev/null" > "$MIGRATE_LOG" 2>&1 || true
   tail -5 "$MIGRATE_LOG"
   log_ok "Schema sincronizado con push"
 fi

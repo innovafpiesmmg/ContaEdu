@@ -57,7 +57,7 @@ if npx drizzle-kit migrate > "$MIGRATE_LOG" 2>&1; then
   log_ok "Migraciones aplicadas"
 else
   log_warn "Migrate falló, intentando push..."
-  script -qec "npx drizzle-kit push --force" /dev/null < /dev/null > "$MIGRATE_LOG" 2>&1 || true
+  timeout 60 bash -c "CI=1 npx drizzle-kit push --force < /dev/null" > "$MIGRATE_LOG" 2>&1 || true
   tail -5 "$MIGRATE_LOG"
   log_ok "Schema sincronizado con push"
 fi
