@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2, Paperclip, X, File } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import type { Exercise, Course, ExerciseSubmission, ExerciseDocument, JournalEntry, JournalLine } from "@shared/schema";
+import type { Exercise, Course, ExerciseSubmission, ExerciseDocument, JournalEntry, JournalLine, Exam } from "@shared/schema";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -328,6 +328,7 @@ function ExerciseCard({
   showSubmissions,
   submissions,
   onReview,
+  linkedExam,
 }: {
   ex: Exercise;
   courses: Course[];
@@ -340,6 +341,7 @@ function ExerciseCard({
   showSubmissions: boolean;
   submissions?: SubmissionWithStudent[];
   onReview: (s: SubmissionWithStudent) => void;
+  linkedExam?: Exam;
 }) {
   const { toast } = useToast();
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -410,6 +412,12 @@ function ExerciseCard({
                 <Badge variant={ex.exerciseType === "guided" ? "default" : "secondary"}>
                   {ex.exerciseType === "guided" ? "Guiado" : "Práctica"}
                 </Badge>
+                {linkedExam && (
+                  <Badge variant="destructive" className="text-xs gap-1">
+                    <ClipboardList className="w-3 h-3" />
+                    Examen: {linkedExam.title}
+                  </Badge>
+                )}
                 {docCount > 0 && (
                   <Badge variant="outline" className="text-xs gap-1">
                     <Paperclip className="w-3 h-3" />
@@ -582,13 +590,10 @@ function ExerciseCard({
                       {s.grade && (
                         <Badge variant="outline" className="gap-1"><Star className="w-3 h-3" /> {s.grade}</Badge>
                       )}
-                      {s.status === "submitted" && (
+                      {(s.status === "submitted" || s.status === "reviewed") && (
                         <Button size="sm" variant="outline" onClick={() => onReview(s)} data-testid={`button-review-${s.id}`}>
-                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Corregir
+                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> {s.status === "reviewed" ? "Reeditar" : "Corregir"}
                         </Button>
-                      )}
-                      {s.status === "reviewed" && s.feedback && (
-                        <span className="text-xs text-muted-foreground max-w-[200px] truncate" title={s.feedback}>{s.feedback}</span>
                       )}
                     </div>
                   </div>
@@ -789,6 +794,7 @@ export default function ExercisesPage() {
 
   const { data: exercises, isLoading } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
+  const { data: exams } = useQuery<Exam[]>({ queryKey: ["/api/exams"] });
 
   const { data: submissions } = useQuery<SubmissionWithStudent[]>({
     queryKey: [`/api/submissions/exercise/${viewSubmissionsId}`],
@@ -1084,6 +1090,7 @@ export default function ExercisesPage() {
                 key={ex.id}
                 ex={ex}
                 courses={courses || []}
+                linkedExam={exams?.find(e => e.exerciseId === ex.id)}
                 onViewSolution={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
                 onUploadSolution={() => { setSolutionExerciseId(ex.id); setSolutionText(""); }}
                 onViewSubmissions={() => setViewSubmissionsId(viewSubmissionsId === ex.id ? null : ex.id)}
@@ -1092,7 +1099,7 @@ export default function ExercisesPage() {
                 onUnassign={(courseId) => unassignMutation.mutate({ exerciseId: ex.id, courseId })}
                 showSubmissions={viewSubmissionsId === ex.id}
                 submissions={viewSubmissionsId === ex.id ? submissions : undefined}
-                onReview={(s) => { setReviewingSubmission(s); setFeedbackText(""); setGradeText(""); }}
+                onReview={(s) => { setReviewingSubmission(s); setFeedbackText(s.feedback || ""); setGradeText(s.grade || ""); }}
               />
           ))}
         </motion.div>
