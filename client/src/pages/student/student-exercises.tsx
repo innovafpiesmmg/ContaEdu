@@ -217,7 +217,7 @@ export default function StudentExercisesPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{ex.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{ex.description}</p>
 
                       <ExerciseDocumentsViewer exerciseId={ex.id} />
 

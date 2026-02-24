@@ -223,7 +223,7 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
             </div>
             <div>
               <p className="font-medium">{exam.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{exam.description}</p>
+              <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{exam.description}</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant="outline" className="gap-1">
                   <Clock className="w-3 h-3" />
