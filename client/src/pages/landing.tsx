@@ -351,27 +351,20 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
       </section>
 
-      <footer className="relative z-10 border-t py-8 mt-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col items-center gap-3">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+      <footer className="relative z-10 border-t py-6 mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
                 <BookOpen className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
               <span className="text-sm font-medium">ContaEdu</span>
+              <span className="text-xs text-muted-foreground">— Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González</span>
             </div>
-            <p className="text-xs text-muted-foreground text-center sm:text-right">
-              Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González
-            </p>
           </div>
-          <div className="border-t w-full pt-3">
-            <p className="text-xs text-muted-foreground text-center">
-              Simulador Contable Educativo — CFGM / CFGS Formación Profesional
-            </p>
-            <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-4 w-auto" data-testid="img-asd-logo" />
-              <span className="text-[11px] text-muted-foreground">Software desarrollado por Atreyu Servicios Digitales</span>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-4 w-auto" data-testid="img-asd-logo" />
+            <span className="text-[11px] text-muted-foreground">Software desarrollado por Atreyu Servicios Digitales</span>
           </div>
         </div>
       </footer>
