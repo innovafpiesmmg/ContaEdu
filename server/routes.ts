@@ -449,6 +449,46 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // Accounts - Download CSV
+  app.get("/api/accounts/download", requireAuth, async (req: any, res) => {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "No autenticado" });
+    let accs;
+    if (user.role === "student") {
+      accs = await storage.getAccountsForUser(user.id);
+    } else {
+      accs = await storage.getAccounts();
+    }
+    accs.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+    const typeLabels: Record<string, string> = {
+      asset: "Activo",
+      liability: "Pasivo",
+      equity: "Patrimonio Neto",
+      income: "Ingreso",
+      expense: "Gasto",
+    };
+    const groupNames: Record<string, string> = {
+      "1": "Financiación Básica",
+      "2": "Activo No Corriente",
+      "3": "Existencias",
+      "4": "Acreedores y Deudores",
+      "5": "Cuentas Financieras",
+      "6": "Compras y Gastos",
+      "7": "Ventas e Ingresos",
+    };
+    const BOM = "\uFEFF";
+    const header = "Código;Nombre;Tipo;Grupo";
+    const rows = accs.map(a => {
+      const g = a.code.charAt(0);
+      const escapeCsv = (v: string) => `"${v.replace(/"/g, '""')}"`;
+      return `${escapeCsv(a.code)};${escapeCsv(a.name)};${escapeCsv(typeLabels[a.accountType] || a.accountType)};${escapeCsv(groupNames[g] || "Otros")}`;
+    });
+    const csv = BOM + header + "\n" + rows.join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=\"plan_de_cuentas.csv\"");
+    res.send(csv);
+  });
+
   // Accounts
   app.get("/api/accounts", requireAuth, async (req: any, res) => {
     const user = await storage.getUser(req.session.userId);

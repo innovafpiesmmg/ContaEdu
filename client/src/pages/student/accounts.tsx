@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, Plus, Trash2, Search } from "lucide-react";
+import { BookOpen, Plus, Trash2, Search, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,17 @@ export default function AccountsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Plan de Cuentas</h1>
           <p className="text-muted-foreground text-sm mt-1">Plan General de Contabilidad (PGC)</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            data-testid="button-download-accounts"
+            onClick={() => {
+              window.open("/api/accounts/download", "_blank");
+            }}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Descargar CSV
+          </Button>
         {isStudent && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -152,6 +163,7 @@ export default function AccountsPage() {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       <div className="relative">
