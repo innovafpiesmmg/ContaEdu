@@ -1,0 +1,217 @@
+# Examen: Ciclo Contable Integral - Electrónica S.A.
+
+**Duración:** 120
+
+## Descripción
+Realiza el ciclo contable completo de la empresa basándote en los siguientes hechos contables:
+
+1. **Apertura:** La empresa cuenta con 30.000 € en bancos, 4.000 € en mercaderías, 2.000 € en mobiliario y una deuda a L/P de 5.000 €. Capital a determinar.
+2. **Compra:** Compra de mercaderías a crédito por 2.000 € + 21% IVA.
+3. **Devolución compra:** Devolvemos 200 € + IVA de la compra anterior por desperfectos.
+4. **Gasto corriente:** Pago por banco del recibo de internet: 60 € + 21% IVA.
+5. **Venta:** Venta de mercaderías por 5.000 € + 21% IVA. Cobro por transferencia.
+6. **Anticipo:** Un cliente nos ingresa 1.210 € (IVA incluido) por banco como anticipo.
+7. **Venta con anticipo:** Realizamos la venta asociada al anticipo por 3.000 € + 21% IVA. El resto queda pendiente.
+8. **Inmovilizado:** Compra de una furgoneta por 15.000 € + 21% IVA. Pagamos 5.000 € por banco y el resto a 2 años.
+9. **Suministros:** Factura de la luz pendiente de pago: 150 € + 21% IVA.
+10. **Arrendamiento:** Pago del alquiler del local por banco: 800 € + 21% IVA - 19% IRPF.
+11. **Profesionales:** Factura del asesor: 300 € + 21% IVA - 15% IRPF. Pendiente de pago.
+12. **Publicidad:** Pago por banco de folletos publicitarios: 100 € + 21% IVA.
+13. **Seguros:** Pago de la prima de seguros anual por banco: 400 € (Exento de IVA).
+14. **Préstamo:** El banco nos concede un préstamo de 6.000 € a devolver en 6 meses.
+15. **Intereses:** Pago de los intereses del préstamo anterior: 120 €.
+16. **Reparaciones:** Reparación de una mesa de oficina: 50 € + 21% IVA. Pago en efectivo.
+17. **Nómina:** Contabilización de la nómina: Sueldo bruto 1.500 €, S.S. trabajador 95 €, IRPF 180 €, S.S. empresa 450 €. Pago por banco.
+18. **Amortización:** Amortización anual del mobiliario (punto 1) al 10%.
+19. **Variación de existencias:** Las existencias finales se valoran en 3.500 €.
+20. **IVA:** Realiza el asiento de liquidación del IVA.
+
+## Instrucciones
+- Aplicar IVA del 21% y retenciones según normativa vigente.
+- Utilizar el cuadro de cuentas del PGC.
+- Cada asiento correcto suma 0,5 puntos.
+
+## Solución
+
+### Asiento 1: Apertura
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 30.000,00 | |
+| 300 Mercaderías | 4.000,00 | |
+| 216 Mobiliario | 2.000,00 | |
+| 170 Deudas a L/P | | 5.000,00 |
+| 100 Capital Social | | 31.000,00 |
+
+### Asiento 2: Compra de mercaderías
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 600 Compras de mercaderías | 2.000,00 | |
+| 472 H.P. IVA soportado | 420,00 | |
+| 400 Proveedores | | 2.420,00 |
+
+### Asiento 3: Devolución de compras
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 400 Proveedores | 242,00 | |
+| 608 Devoluciones de compras | | 200,00 |
+| 472 H.P. IVA soportado | | 42,00 |
+
+### Asiento 4: Gasto de internet
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 629 Otros servicios | 60,00 | |
+| 472 H.P. IVA soportado | 12,60 | |
+| 572 Bancos | | 72,60 |
+
+### Asiento 5: Venta de mercaderías
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 6.050,00 | |
+| 700 Ventas de mercaderías | | 5.000,00 |
+| 477 H.P. IVA repercutido | | 1.050,00 |
+
+### Asiento 6: Cobro de anticipo
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 1.210,00 | |
+| 438 Anticipos de clientes | | 1.000,00 |
+| 477 H.P. IVA repercutido | | 210,00 |
+
+### Asiento 7: Venta con aplicación de anticipo
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 430 Clientes | 2.420,00 | |
+| 438 Anticipos de clientes | 1.000,00 | |
+| 700 Ventas de mercaderías | | 3.000,00 |
+| 477 H.P. IVA repercutido (neto) | | 420,00 |
+
+### Asiento 8: Compra de elemento de transporte
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 218 Elementos de transporte | 15.000,00 | |
+| 472 H.P. IVA soportado | 3.150,00 | |
+| 572 Bancos | | 5.000,00 |
+| 173 Proveedores inmov. L/P | | 13.150,00 |
+
+### Asiento 9: Factura de suministros pendiente
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 628 Suministros | 150,00 | |
+| 472 H.P. IVA soportado | 31,50 | |
+| 410 Acreedores prest. serv. | | 181,50 |
+
+### Asiento 10: Alquiler con retención
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 621 Arrendamientos | 800,00 | |
+| 472 H.P. IVA soportado | 168,00 | |
+| 4751 H.P. Acreedora retenciones | | 152,00 |
+| 572 Bancos | | 816,00 |
+
+### Asiento 11: Servicios profesionales
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 623 Serv. profesionales indep. | 300,00 | |
+| 472 H.P. IVA soportado | 63,00 | |
+| 4751 H.P. Acreedora retenciones | | 45,00 |
+| 410 Acreedores prest. serv. | | 318,00 |
+
+### Asiento 12: Gasto de publicidad
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 627 Publicidad y propaganda | 100,00 | |
+| 472 H.P. IVA soportado | 21,00 | |
+| 572 Bancos | | 121,00 |
+
+### Asiento 13: Prima de seguros
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 625 Primas de seguros | 400,00 | |
+| 572 Bancos | | 400,00 |
+
+### Asiento 14: Préstamo a corto plazo
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 572 Bancos | 6.000,00 | |
+| 520 Deudas a C/P ent. crédito | | 6.000,00 |
+
+### Asiento 15: Intereses de deuda
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 662 Intereses de deudas | 120,00 | |
+| 572 Bancos | | 120,00 |
+
+### Asiento 16: Reparación en efectivo
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 622 Reparaciones y conserv. | 50,00 | |
+| 472 H.P. IVA soportado | 10,50 | |
+| 570 Caja | | 60,50 |
+
+### Asiento 17: Nómina del personal
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 640 Sueldos y salarios | 1.500,00 | |
+| 642 S.S. a cargo empresa | 450,00 | |
+| 476 Org. Seg. Social acreedores | | 545,00 |
+| 4751 H.P. Acreedora retenciones | | 180,00 |
+| 572 Bancos | | 1.225,00 |
+
+### Asiento 18: Amortización inmovilizado
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 681 Amortización Inmov. Mat. | 200,00 | |
+| 281 Amortización Acum. I.M. | | 200,00 |
+
+### Asiento 19: Variación de existencias
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 610 Variación de existencias | 500,00 | |
+| 300 Mercaderías (Baja 4000, Alta 3500) | | 500,00 |
+
+### Asiento 20: Liquidación de IVA
+**Puntos:** 0,5
+
+| Cuenta | Debe | Haber |
+|--------|------|-------|
+| 477 H.P. IVA repercutido | 1.680,00 | |
+| 472 H.P. IVA soportado | | 3.876,60 |
+| 4700 H.P. Deudora por IVA | 2.196,60 | |

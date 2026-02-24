@@ -239,6 +239,36 @@ function parseSolutionFromBlock(solutionBlock: string): SolutionEntry[] {
   return entries;
 }
 
+function extractDescriptionEnunciados(description: string): Record<number, string> {
+  const enunciados: Record<number, string> = {};
+  const lines = description.split("\n");
+  let currentNum: number | null = null;
+  let currentText: string[] = [];
+
+  for (const line of lines) {
+    const itemMatch = line.match(/^\s*(\d+)\.\s+(.+)$/);
+    if (itemMatch) {
+      if (currentNum !== null && currentText.length > 0) {
+        enunciados[currentNum] = currentText.join("\n").trim();
+      }
+      currentNum = parseInt(itemMatch[1]);
+      let text = itemMatch[2].trim();
+      text = text.replace(/^\*\*[^*]+:\*\*\s*/, "");
+      currentText = [text];
+    } else if (currentNum !== null && line.trim()) {
+      currentText.push(line.trim());
+    } else if (currentNum !== null && !line.trim() && currentText.length > 0) {
+      enunciados[currentNum] = currentText.join("\n").trim();
+      currentNum = null;
+      currentText = [];
+    }
+  }
+  if (currentNum !== null && currentText.length > 0) {
+    enunciados[currentNum] = currentText.join("\n").trim();
+  }
+  return enunciados;
+}
+
 function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> {
   const exercises: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> = [];
   const cleaned = md.replace(/^\uFEFF/, "");
@@ -264,6 +294,12 @@ function parseExercisesMD(md: string): Array<{ title: string; description: strin
       if (solutionBlock) {
         const parsed = parseSolutionFromBlock(solutionBlock);
         if (parsed.length > 0) {
+          const descEnunciados = extractDescriptionEnunciados(entry.description);
+          for (const sol of parsed) {
+            if (!sol.enunciado && descEnunciados[sol.entryNumber]) {
+              sol.enunciado = descEnunciados[sol.entryNumber];
+            }
+          }
           entry.solution = parsed;
         }
       }

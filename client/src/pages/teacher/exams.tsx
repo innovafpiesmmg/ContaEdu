@@ -142,6 +142,36 @@ function parseExamSolution(solutionBlock: string): SolutionEntry[] {
   return entries;
 }
 
+function extractDescriptionEnunciados(description: string): Record<number, string> {
+  const enunciados: Record<number, string> = {};
+  const lines = description.split("\n");
+  let currentNum: number | null = null;
+  let currentText: string[] = [];
+
+  for (const line of lines) {
+    const itemMatch = line.match(/^\s*(\d+)\.\s+(.+)$/);
+    if (itemMatch) {
+      if (currentNum !== null && currentText.length > 0) {
+        enunciados[currentNum] = currentText.join("\n").trim();
+      }
+      currentNum = parseInt(itemMatch[1]);
+      let text = itemMatch[2].trim();
+      text = text.replace(/^\*\*[^*]+:\*\*\s*/, "");
+      currentText = [text];
+    } else if (currentNum !== null && line.trim()) {
+      currentText.push(line.trim());
+    } else if (currentNum !== null && !line.trim() && currentText.length > 0) {
+      enunciados[currentNum] = currentText.join("\n").trim();
+      currentNum = null;
+      currentText = [];
+    }
+  }
+  if (currentNum !== null && currentText.length > 0) {
+    enunciados[currentNum] = currentText.join("\n").trim();
+  }
+  return enunciados;
+}
+
 function parseExamsMD(md: string): ParsedExam[] {
   const exams: ParsedExam[] = [];
   const cleaned = md.replace(/^\uFEFF/, "");
@@ -161,19 +191,26 @@ function parseExamsMD(md: string): ParsedExam[] {
     const instrBlock = instrSplit.length > 1 ? instrSplit[1] : null;
 
     const descMatch = preInstrBlock.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)$/i);
+    const descriptionText = descMatch ? descMatch[1].trim() : "";
 
     if (titleMatch) {
       const entry: ParsedExam = {
         title: titleMatch[1].trim(),
         durationMinutes: durationMatch ? parseInt(durationMatch[1]) : 60,
         exerciseTitle: exerciseMatch ? exerciseMatch[1].trim() : "",
-        description: descMatch ? descMatch[1].trim() : "",
+        description: descriptionText,
         instructions: instrBlock ? instrBlock.trim() : "",
       };
 
       if (solutionBlock) {
         const parsed = parseExamSolution(solutionBlock);
         if (parsed.length > 0) {
+          const descEnunciados = extractDescriptionEnunciados(descriptionText);
+          for (const sol of parsed) {
+            if (!sol.enunciado && descEnunciados[sol.entryNumber]) {
+              sol.enunciado = descEnunciados[sol.entryNumber];
+            }
+          }
           entry.solution = parsed;
         }
       }
