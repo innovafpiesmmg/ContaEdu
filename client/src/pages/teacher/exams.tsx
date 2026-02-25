@@ -406,7 +406,7 @@ export default function TeacherExamsPage() {
                 Nuevo Examen
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Crear Examen</DialogTitle>
               </DialogHeader>
