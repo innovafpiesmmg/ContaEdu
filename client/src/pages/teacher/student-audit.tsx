@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { ArrowLeft, BookOpenCheck, FileText, BarChart3, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, BookOpenCheck, FileText, BarChart3, Eye, ClipboardList } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { User, JournalEntry, JournalLine } from "@shared/schema";
+import type { User, Exercise, JournalEntry, JournalLine } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface JournalEntryWithLines extends JournalEntry {
@@ -31,24 +33,68 @@ interface TrialBalance {
 export default function StudentAuditPage() {
   const params = useParams<{ id: string }>();
   const studentId = params.id;
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string>("all");
 
   const { data: students } = useQuery<User[]>({ queryKey: ["/api/users/students"] });
   const student = students?.find(s => s.id === studentId);
 
+  const { data: allExercises } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
+
+  const exerciseIdParam = selectedExerciseId !== "all" ? selectedExerciseId : undefined;
+
   const { data: journal, isLoading: loadingJournal } = useQuery<JournalEntryWithLines[]>({
-    queryKey: ["/api/audit/students", studentId, "journal"],
+    queryKey: ["/api/audit/students", studentId, "journal", exerciseIdParam || "all"],
+    queryFn: () => {
+      const url = exerciseIdParam
+        ? `/api/audit/students/${studentId}/journal?exerciseId=${exerciseIdParam}`
+        : `/api/audit/students/${studentId}/journal`;
+      return fetch(url, { credentials: "include" }).then(r => r.json());
+    },
     enabled: !!studentId,
   });
 
   const { data: ledger, isLoading: loadingLedger } = useQuery<LedgerAccount[]>({
-    queryKey: ["/api/audit/students", studentId, "ledger"],
+    queryKey: ["/api/audit/students", studentId, "ledger", exerciseIdParam || "all"],
+    queryFn: () => {
+      const url = exerciseIdParam
+        ? `/api/audit/students/${studentId}/ledger?exerciseId=${exerciseIdParam}`
+        : `/api/audit/students/${studentId}/ledger`;
+      return fetch(url, { credentials: "include" }).then(r => r.json());
+    },
     enabled: !!studentId,
   });
 
   const { data: balance, isLoading: loadingBalance } = useQuery<TrialBalance>({
-    queryKey: ["/api/audit/students", studentId, "trial-balance"],
+    queryKey: ["/api/audit/students", studentId, "trial-balance", exerciseIdParam || "all"],
+    queryFn: () => {
+      const url = exerciseIdParam
+        ? `/api/audit/students/${studentId}/trial-balance?exerciseId=${exerciseIdParam}`
+        : `/api/audit/students/${studentId}/trial-balance`;
+      return fetch(url, { credentials: "include" }).then(r => r.json());
+    },
     enabled: !!studentId,
   });
+
+  const exercisesWithEntries = (() => {
+    if (!allExercises || !journal) return [];
+    const exerciseIdsInJournal = new Set(journal.map(e => e.exerciseId).filter(Boolean));
+    return allExercises.filter(ex => exerciseIdsInJournal.has(ex.id));
+  })();
+
+  const fullJournal = useQuery<JournalEntryWithLines[]>({
+    queryKey: ["/api/audit/students", studentId, "journal", "all"],
+    queryFn: () => fetch(`/api/audit/students/${studentId}/journal`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!studentId && selectedExerciseId !== "all",
+  });
+
+  const allExercisesWithWork = (() => {
+    const entries = selectedExerciseId === "all" ? journal : fullJournal.data;
+    if (!allExercises || !entries) return [];
+    const exerciseIdsInJournal = new Set(entries.map(e => e.exerciseId).filter(Boolean));
+    return allExercises.filter(ex => exerciseIdsInJournal.has(ex.id));
+  })();
+
+  const selectedExercise = allExercises?.find(ex => ex.id === selectedExerciseId);
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
@@ -67,6 +113,26 @@ export default function StudentAuditPage() {
           </div>
           <p className="text-muted-foreground text-sm mt-0.5">Vista de solo lectura del trabajo del alumno</p>
         </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <ClipboardList className="w-4 h-4 text-muted-foreground" />
+        <Select value={selectedExerciseId} onValueChange={setSelectedExerciseId}>
+          <SelectTrigger className="w-[320px]" data-testid="select-audit-exercise">
+            <SelectValue placeholder="Seleccionar ejercicio" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los ejercicios (vista global)</SelectItem>
+            {allExercisesWithWork.map(ex => (
+              <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedExercise && (
+          <Badge variant="secondary" className="text-xs">
+            {selectedExercise.exerciseType === "guided" ? "Guiado" : "Práctica"}
+          </Badge>
+        )}
       </div>
 
       <Tabs defaultValue="journal">
@@ -88,39 +154,56 @@ export default function StudentAuditPage() {
               {[1, 2].map(i => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
             </div>
           ) : journal && journal.length > 0 ? (
-            journal.map(entry => (
-              <Card key={entry.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Badge variant="secondary" className="font-mono">#{entry.entryNumber}</Badge>
-                    <div>
-                      <p className="font-medium text-sm">{entry.description}</p>
-                      <p className="text-xs text-muted-foreground">{entry.date}</p>
-                    </div>
-                  </div>
-                  {entry.lines && (
-                    <div className="bg-muted/30 rounded-md p-3">
-                      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] gap-2 text-xs font-medium text-muted-foreground mb-2 px-1">
-                        <span>Cuenta</span><span>Nombre</span>
-                        <span className="text-right">Debe</span><span className="text-right">Haber</span>
-                      </div>
-                      {entry.lines.map((line: JournalLine) => (
-                        <div key={line.id} className="grid grid-cols-[1fr_2fr_1fr_1fr] gap-2 text-sm py-1 px-1">
-                          <span className="font-mono text-muted-foreground">{line.accountCode}</span>
-                          <span>{line.accountName}</span>
-                          <span className="text-right font-mono">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toFixed(2) : ""}</span>
-                          <span className="text-right font-mono">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toFixed(2) : ""}</span>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+              {journal.map(entry => {
+                const entryExercise = selectedExerciseId === "all" && entry.exerciseId
+                  ? allExercises?.find(ex => ex.id === entry.exerciseId)
+                  : null;
+                return (
+                  <Card key={entry.id} data-testid={`audit-journal-entry-${entry.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Badge variant="secondary" className="font-mono">#{entry.entryNumber}</Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{entry.description}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground">{entry.date}</span>
+                            {entryExercise && (
+                              <Badge variant="outline" className="text-[10px] gap-1">
+                                <ClipboardList className="w-2.5 h-2.5" />
+                                {entryExercise.title}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                      </div>
+                      {entry.lines && (
+                        <div className="bg-muted/30 rounded-md p-3">
+                          <div className="grid grid-cols-[1fr_2fr_1fr_1fr] gap-2 text-xs font-medium text-muted-foreground mb-2 px-1">
+                            <span>Cuenta</span><span>Nombre</span>
+                            <span className="text-right">Debe</span><span className="text-right">Haber</span>
+                          </div>
+                          {entry.lines.map((line: JournalLine) => (
+                            <div key={line.id} className="grid grid-cols-[1fr_2fr_1fr_1fr] gap-2 text-sm py-1 px-1">
+                              <span className="font-mono text-muted-foreground">{line.accountCode}</span>
+                              <span>{line.accountName}</span>
+                              <span className="text-right font-mono">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toFixed(2) : ""}</span>
+                              <span className="text-right font-mono">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toFixed(2) : ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </motion.div>
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Este alumno no tiene asientos registrados
+                {selectedExerciseId !== "all"
+                  ? "Este alumno no tiene asientos en este ejercicio"
+                  : "Este alumno no tiene asientos registrados"}
               </CardContent>
             </Card>
           )}
@@ -172,7 +255,9 @@ export default function StudentAuditPage() {
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                No hay movimientos para este alumno
+                {selectedExerciseId !== "all"
+                  ? "No hay movimientos en este ejercicio"
+                  : "No hay movimientos para este alumno"}
               </CardContent>
             </Card>
           )}
@@ -227,7 +312,9 @@ export default function StudentAuditPage() {
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                No hay datos de balance para este alumno
+                {selectedExerciseId !== "all"
+                  ? "No hay datos de balance en este ejercicio"
+                  : "No hay datos de balance para este alumno"}
               </CardContent>
             </Card>
           )}
