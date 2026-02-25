@@ -406,7 +406,7 @@ export default function TeacherExamsPage() {
                 Nuevo Examen
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Crear Examen</DialogTitle>
               </DialogHeader>
@@ -427,7 +427,7 @@ export default function TeacherExamsPage() {
                     value={form.description}
                     onChange={e => setForm({ ...form, description: e.target.value })}
                     placeholder="Registrar los asientos de..."
-                    rows={3}
+                    rows={2}
                   />
                 </div>
                 <div className="space-y-2">
@@ -468,89 +468,18 @@ export default function TeacherExamsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Ejercicio Base</Label>
-                  {form.exerciseId && exercises?.find(e => e.id === form.exerciseId) ? (
-                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border">
-                      <BookOpen className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-sm font-medium truncate flex-1">
-                        {exercises.find(e => e.id === form.exerciseId)?.title}
-                      </span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setForm({ ...form, exerciseId: "" })} data-testid="button-clear-exercise">
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="border rounded-md p-3 space-y-2 overflow-hidden">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                        <Input
-                          data-testid="input-search-exercise-for-exam"
-                          className="pl-8 h-8 text-sm"
-                          placeholder="Buscar ejercicio por título..."
-                          value={exerciseSearch}
-                          onChange={e => setExerciseSearch(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Select value={exerciseFilterType} onValueChange={setExerciseFilterType}>
-                          <SelectTrigger className="h-7 text-[11px] flex-1" data-testid="filter-exercise-type-exam">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="guided">Guiado</SelectItem>
-                            <SelectItem value="practice">Práctica</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={exerciseFilterLevel} onValueChange={setExerciseFilterLevel}>
-                          <SelectTrigger className="h-7 text-[11px] flex-1" data-testid="filter-exercise-level-exam">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos niveles</SelectItem>
-                            <SelectItem value="cfgm">CFGM</SelectItem>
-                            <SelectItem value="cfgs">CFGS</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="max-h-36 overflow-y-auto space-y-1">
-                        {(() => {
-                          const filtered = (exercises || []).filter(ex => {
-                            if (exerciseSearch) {
-                              const q = exerciseSearch.toLowerCase();
-                              if (!ex.title.toLowerCase().includes(q) && !ex.description.toLowerCase().includes(q)) return false;
-                            }
-                            if (exerciseFilterType !== "all" && ex.exerciseType !== exerciseFilterType) return false;
-                            if (exerciseFilterLevel !== "all" && ex.recommendedLevel !== exerciseFilterLevel) return false;
-                            return true;
-                          });
-                          return filtered.length > 0 ? filtered.map(ex => (
-                            <button
-                              key={ex.id}
-                              type="button"
-                              className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-muted text-sm transition-colors overflow-hidden"
-                              onClick={() => { setForm({ ...form, exerciseId: ex.id }); setExerciseSearch(""); }}
-                              data-testid={`select-exercise-${ex.id}`}
-                            >
-                              <p className="font-medium truncate text-xs">{ex.title}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{ex.description}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Badge variant="secondary" className="text-[10px] h-5">
-                                  {ex.exerciseType === "guided" ? "Guiado" : "Práctica"}
-                                </Badge>
-                                {ex.recommendedLevel && (
-                                  <Badge variant="outline" className="text-[10px] h-5 border-blue-300 text-blue-600">
-                                    {ex.recommendedLevel.toUpperCase()}
-                                  </Badge>
-                                )}
-                              </div>
-                            </button>
-                          )) : (
-                            <p className="text-xs text-muted-foreground text-center py-3">No se encontraron ejercicios</p>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
+                  <Select value={form.exerciseId} onValueChange={v => setForm({ ...form, exerciseId: v })}>
+                    <SelectTrigger data-testid="select-exam-exercise">
+                      <SelectValue placeholder="Seleccionar ejercicio..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(exercises || []).map(ex => (
+                        <SelectItem key={ex.id} value={ex.id}>
+                          {ex.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button
                   data-testid="button-save-exam"
