@@ -406,7 +406,7 @@ export default function TeacherExamsPage() {
                 Nuevo Examen
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
               <DialogHeader>
                 <DialogTitle>Crear Examen</DialogTitle>
               </DialogHeader>
@@ -479,7 +479,7 @@ export default function TeacherExamsPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="border rounded-md p-3 space-y-2">
+                    <div className="border rounded-md p-3 space-y-2 overflow-hidden">
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
@@ -492,7 +492,7 @@ export default function TeacherExamsPage() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Select value={exerciseFilterType} onValueChange={setExerciseFilterType}>
-                          <SelectTrigger className="h-7 text-[11px] w-[110px]" data-testid="filter-exercise-type-exam">
+                          <SelectTrigger className="h-7 text-[11px] flex-1" data-testid="filter-exercise-type-exam">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -502,7 +502,7 @@ export default function TeacherExamsPage() {
                           </SelectContent>
                         </Select>
                         <Select value={exerciseFilterLevel} onValueChange={setExerciseFilterLevel}>
-                          <SelectTrigger className="h-7 text-[11px] w-[110px]" data-testid="filter-exercise-level-exam">
+                          <SelectTrigger className="h-7 text-[11px] flex-1" data-testid="filter-exercise-level-exam">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -527,15 +527,13 @@ export default function TeacherExamsPage() {
                             <button
                               key={ex.id}
                               type="button"
-                              className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-muted text-sm flex items-center gap-2 transition-colors"
+                              className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-muted text-sm transition-colors overflow-hidden"
                               onClick={() => { setForm({ ...form, exerciseId: ex.id }); setExerciseSearch(""); }}
                               data-testid={`select-exercise-${ex.id}`}
                             >
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-xs">{ex.title}</p>
-                                <p className="text-[11px] text-muted-foreground truncate">{ex.description}</p>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
+                              <p className="font-medium truncate text-xs">{ex.title}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{ex.description}</p>
+                              <div className="flex items-center gap-1 mt-1">
                                 <Badge variant="secondary" className="text-[10px] h-5">
                                   {ex.exerciseType === "guided" ? "Guiado" : "Práctica"}
                                 </Badge>
