@@ -948,7 +948,6 @@ export default function ExercisesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterLevel, setFilterLevel] = useState<string>("all");
-  const [filterCourse, setFilterCourse] = useState<string>("all");
   const [filterCollection, setFilterCollection] = useState<string>("all");
   const [filterPending, setFilterPending] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
@@ -1255,8 +1254,8 @@ export default function ExercisesPage() {
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Ejercicios</h1>
-          <p className="text-muted-foreground text-sm mt-1">Biblioteca de casos prácticos — {filteredExercises.length} de {exercises?.length || 0}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Repositorio de Ejercicios</h1>
+          <p className="text-muted-foreground text-sm mt-1">Biblioteca compartida de casos prácticos — {filteredExercises.length} de {exercises?.length || 0}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setCollectionsOpen(true)} data-testid="button-manage-collections">

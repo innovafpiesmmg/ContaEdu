@@ -582,6 +582,11 @@ export async function registerRoutes(
   });
 
   // Course-exercise assignment
+  app.get("/api/courses/:courseId/exercises", requireRole("teacher"), async (req: any, res) => {
+    const exercises = await storage.getExercisesForCourse(req.params.courseId);
+    res.json(exercises);
+  });
+
   app.get("/api/exercises/:id/courses", requireRole("teacher"), async (req: any, res) => {
     const courseIds = await storage.getAssignedCourseIds(req.params.id);
     res.json(courseIds);

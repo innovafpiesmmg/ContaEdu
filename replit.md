@@ -30,6 +30,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `client/src/App.tsx` - Main app with role-based routing
 - `client/src/lib/auth.tsx` - Auth context provider
 - `client/src/lib/exercise-context.tsx` - Exercise selection context
+- `client/src/pages/teacher/course-exercises.tsx` - Course-specific exercise management (per course view)
 - `client/src/pages/profile.tsx` - User profile (password change, email)
 - `client/src/pages/reset-password.tsx` - Password reset page
 - `scripts/change-admin-password.ts` - Console script for admin password
@@ -51,6 +52,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `GET/POST /api/courses` - Course management
 - `GET/POST /api/accounts` - Chart of accounts (PGC)
 - `GET/POST /api/exercises` - Exercise management (shared repository, all teachers see all)
+- `GET /api/courses/:courseId/exercises` - Get exercises assigned to a specific course
 - `GET /api/exercises/:id/courses` - Get assigned course IDs for exercise
 - `POST /api/exercises/:id/assign` - Assign exercise to course
 - `POST /api/exercises/:id/unassign` - Unassign exercise from course

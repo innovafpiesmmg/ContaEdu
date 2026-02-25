@@ -28,6 +28,7 @@ import {
   FileQuestion,
   PieChart,
   UserCog,
+  Library,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,8 @@ export function AppSidebar() {
     { title: "Panel Principal", url: "/", icon: LayoutDashboard },
     { title: "Mis Cursos", url: "/courses", icon: GraduationCap },
     { title: "Alumnos", url: "/students", icon: Users },
-    { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
+    { title: "Ejercicios del Curso", url: "/course-exercises", icon: ClipboardList },
+    { title: "Repositorio", url: "/exercises", icon: Library },
     { title: "Exámenes", url: "/exams", icon: FileQuestion },
     { title: "Mi Perfil", url: "/profile", icon: UserCog },
   ];
