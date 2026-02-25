@@ -49,8 +49,8 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `GET/PATCH /api/config` - Tax regime config
 - `GET/PATCH /api/config/mail` - Mail server SMTP config (admin only)
 - `GET/POST /api/users/teachers` - Teacher management
-- `GET/POST /api/users/students` - Student management
-- `GET/POST /api/courses` - Course management
+- `GET/POST/PATCH /api/users/students` - Student management (PATCH updates name/username/course)
+- `GET/POST/PATCH /api/courses` - Course management (PATCH updates name/description/year)
 - `GET/POST /api/accounts` - Chart of accounts (PGC)
 - `GET/POST /api/exercises` - Exercise management (shared repository, all teachers see all)
 - `GET /api/courses/:courseId/exercises` - Get exercises assigned to a specific course

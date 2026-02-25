@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, GraduationCap, Trash2, Copy, KeyRound } from "lucide-react";
+import { Plus, GraduationCap, Trash2, Copy, KeyRound, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Course, SchoolYear } from "@shared/schema";
@@ -18,6 +18,8 @@ import { motion } from "framer-motion";
 export default function CoursesPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", schoolYearId: "" });
+  const [editCourse, setEditCourse] = useState<Course | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", schoolYearId: "" });
   const { toast } = useToast();
 
   const { data: courses, isLoading } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
@@ -36,6 +38,19 @@ export default function CoursesPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", `/api/courses/${editCourse!.id}`, editForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      setEditCourse(null);
+      toast({ title: "Curso actualizado correctamente" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/courses/${id}`),
     onSuccess: () => {
@@ -47,6 +62,15 @@ export default function CoursesPage() {
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast({ title: "Código copiado al portapapeles" });
+  };
+
+  const openEditDialog = (course: Course) => {
+    setEditCourse(course);
+    setEditForm({
+      name: course.name,
+      description: course.description || "",
+      schoolYearId: course.schoolYearId,
+    });
   };
 
   return (
@@ -155,14 +179,24 @@ export default function CoursesPage() {
                         )}
                       </div>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => deleteMutation.mutate(c.id)}
-                      data-testid={`button-delete-course-${c.id}`}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEditDialog(c)}
+                        data-testid={`button-edit-course-${c.id}`}
+                      >
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => deleteMutation.mutate(c.id)}
+                        data-testid={`button-delete-course-${c.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -178,6 +212,53 @@ export default function CoursesPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!editCourse} onOpenChange={open => { if (!open) setEditCourse(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Curso</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Nombre del Curso</Label>
+              <Input
+                data-testid="input-edit-course-name"
+                value={editForm.name}
+                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Textarea
+                data-testid="input-edit-course-description"
+                value={editForm.description}
+                onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Año Escolar</Label>
+              <Select value={editForm.schoolYearId} onValueChange={v => setEditForm({ ...editForm, schoolYearId: v })}>
+                <SelectTrigger data-testid="select-edit-year">
+                  <SelectValue placeholder="Seleccionar año..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {years?.map(y => (
+                    <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              data-testid="button-save-edit-course"
+              className="w-full"
+              onClick={() => updateMutation.mutate()}
+              disabled={!editForm.name || !editForm.schoolYearId || updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

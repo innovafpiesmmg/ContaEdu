@@ -40,6 +40,7 @@ export interface IStorage {
   getUsersByTeacher(teacherId: string, role: string): Promise<User[]>;
   getUsersByCourse(courseId: string): Promise<User[]>;
   deleteUser(id: string): Promise<void>;
+  updateUser(id: string, data: { fullName?: string; username?: string; courseId?: string }): Promise<User>;
 
   getSchoolYears(): Promise<SchoolYear[]>;
   createSchoolYear(year: InsertSchoolYear): Promise<SchoolYear>;
@@ -54,6 +55,7 @@ export interface IStorage {
   getCoursesByTeacher(teacherId: string): Promise<Course[]>;
   getCourseByEnrollmentCode(code: string): Promise<Course | undefined>;
   createCourse(course: InsertCourse): Promise<Course>;
+  updateCourse(id: string, data: { name?: string; description?: string; schoolYearId?: string }): Promise<Course>;
   deleteCourse(id: string): Promise<void>;
 
   getAccounts(): Promise<Account[]>;
@@ -168,6 +170,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(eq(users.id, id));
   }
 
+  async updateUser(id: string, data: { fullName?: string; username?: string; courseId?: string }): Promise<User> {
+    const updateData: any = {};
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.username !== undefined) updateData.username = data.username;
+    if (data.courseId !== undefined) updateData.courseId = data.courseId;
+    const [updated] = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
+    return updated;
+  }
+
   async getSchoolYears(): Promise<SchoolYear[]> {
     return db.select().from(schoolYears);
   }
@@ -227,6 +238,15 @@ export class DatabaseStorage implements IStorage {
     const codeToUse = course.enrollmentCode || generateEnrollmentCode();
     const [created] = await db.insert(courses).values({ ...course, enrollmentCode: codeToUse }).returning();
     return created;
+  }
+
+  async updateCourse(id: string, data: { name?: string; description?: string; schoolYearId?: string }): Promise<Course> {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.schoolYearId !== undefined) updateData.schoolYearId = data.schoolYearId;
+    const [updated] = await db.update(courses).set(updateData).where(eq(courses.id, id)).returning();
+    return updated;
   }
 
   async deleteCourse(id: string): Promise<void> {

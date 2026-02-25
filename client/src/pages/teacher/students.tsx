@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Trash2, Eye, Filter } from "lucide-react";
+import { Plus, Users, Trash2, Eye, Filter, Pencil } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,6 +20,8 @@ export default function StudentsPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ fullName: "", username: "", password: "", courseId: "" });
   const [filterCourseId, setFilterCourseId] = useState<string>("all");
+  const [editStudent, setEditStudent] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ fullName: "", username: "", courseId: "" });
   const { toast } = useToast();
 
   const { data: students, isLoading } = useQuery<User[]>({ queryKey: ["/api/users/students"] });
@@ -44,6 +46,19 @@ export default function StudentsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", `/api/users/${editStudent!.id}`, editForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/students"] });
+      setEditStudent(null);
+      toast({ title: "Alumno actualizado correctamente" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/users/${id}`),
     onSuccess: () => {
@@ -51,6 +66,15 @@ export default function StudentsPage() {
       toast({ title: "Alumno eliminado" });
     },
   });
+
+  const openEditDialog = (student: User) => {
+    setEditStudent(student);
+    setEditForm({
+      fullName: student.fullName,
+      username: student.username,
+      courseId: student.courseId || "",
+    });
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -181,6 +205,14 @@ export default function StudentsPage() {
                       <Button
                         size="icon"
                         variant="ghost"
+                        onClick={() => openEditDialog(s)}
+                        data-testid={`button-edit-student-${s.id}`}
+                      >
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => deleteMutation.mutate(s.id)}
                         data-testid={`button-delete-student-${s.id}`}
                       >
@@ -206,6 +238,53 @@ export default function StudentsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!editStudent} onOpenChange={open => { if (!open) setEditStudent(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Alumno</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Nombre completo</Label>
+              <Input
+                data-testid="input-edit-student-name"
+                value={editForm.fullName}
+                onChange={e => setEditForm({ ...editForm, fullName: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Usuario</Label>
+              <Input
+                data-testid="input-edit-student-username"
+                value={editForm.username}
+                onChange={e => setEditForm({ ...editForm, username: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Curso</Label>
+              <Select value={editForm.courseId} onValueChange={v => setEditForm({ ...editForm, courseId: v })}>
+                <SelectTrigger data-testid="select-edit-student-course">
+                  <SelectValue placeholder="Seleccionar curso..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses?.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              data-testid="button-save-edit-student"
+              className="w-full"
+              onClick={() => updateMutation.mutate()}
+              disabled={!editForm.fullName || !editForm.username || !editForm.courseId || updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

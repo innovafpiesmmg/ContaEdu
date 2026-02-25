@@ -408,6 +408,16 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/users/:id", requireRole("admin", "teacher"), async (req: any, res) => {
+    try {
+      const { fullName, username, courseId } = req.body;
+      const updated = await storage.updateUser(req.params.id, { fullName, username, courseId });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   app.delete("/api/users/:id", requireRole("admin", "teacher"), async (req, res) => {
     await storage.deleteUser(req.params.id);
     res.json({ ok: true });
@@ -439,6 +449,18 @@ export async function registerRoutes(
         schoolYearId: req.body.schoolYearId,
       });
       res.json(course);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/courses/:id", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const course = await storage.getCourseById(req.params.id);
+      if (!course || course.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+      const { name, description, schoolYearId } = req.body;
+      const updated = await storage.updateCourse(req.params.id, { name, description, schoolYearId });
+      res.json(updated);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
