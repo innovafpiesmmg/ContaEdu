@@ -136,7 +136,11 @@ export async function runAutoMigrations() {
       student_id varchar NOT NULL,
       started_at text NOT NULL,
       submitted_at text,
-      status exam_status NOT NULL DEFAULT 'not_started'
+      status exam_status NOT NULL DEFAULT 'not_started',
+      grade numeric(5,2),
+      feedback text,
+      reviewed_at text,
+      reviewed_by varchar
     )`);
 
     await client.query(`CREATE TABLE IF NOT EXISTS exercise_submissions (
@@ -191,6 +195,10 @@ export async function runAutoMigrations() {
     await addColumnIfNotExists(client, "exercises", "solution", "text");
     await addColumnIfNotExists(client, "exercises", "recommended_level", "varchar");
     await addColumnIfNotExists(client, "exercises", "custom_account_plan", "text");
+    await addColumnIfNotExists(client, "exam_attempts", "grade", "numeric(5,2)");
+    await addColumnIfNotExists(client, "exam_attempts", "feedback", "text");
+    await addColumnIfNotExists(client, "exam_attempts", "reviewed_at", "text");
+    await addColumnIfNotExists(client, "exam_attempts", "reviewed_by", "varchar");
 
     // Make exercises.course_id nullable (for shared repository)
     await client.query(`ALTER TABLE exercises ALTER COLUMN course_id DROP NOT NULL`).catch(() => {});
