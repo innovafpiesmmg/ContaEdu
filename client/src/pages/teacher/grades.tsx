@@ -67,6 +67,8 @@ export default function GradesPage() {
   const { data: gradesData, isLoading } = useQuery<GradesResponse>({
     queryKey: ["/api/grades", selectedCourse],
     enabled: !!selectedCourse,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const filteredStudents = gradesData?.students.filter(s => {
