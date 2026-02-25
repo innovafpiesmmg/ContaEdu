@@ -161,11 +161,9 @@ function EnunciadoPanel({ exercise, exerciseId }: { exercise?: Exercise; exercis
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             {linkedExam.title}
           </h3>
-          {!hasEnunciados && (
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.description}</p>
-          )}
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.description}</p>
           {linkedExam.instructions && (
-            <div className={hasEnunciados ? "" : "mt-2 pt-2 border-t border-amber-200 dark:border-amber-700"}>
+            <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700">
               <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Instrucciones:</p>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{linkedExam.instructions}</p>
             </div>
