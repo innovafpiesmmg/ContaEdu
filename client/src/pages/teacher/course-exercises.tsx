@@ -45,6 +45,7 @@ interface SolutionEntry {
 export default function CourseExercisesPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterPending, setFilterPending] = useState(false);
   const [viewSubmissionsId, setViewSubmissionsId] = useState<string | null>(null);
   const [reviewingSubmission, setReviewingSubmission] = useState<SubmissionWithStudent | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -67,6 +68,7 @@ export default function CourseExercisesPage() {
       const q = searchQuery.toLowerCase();
       if (!ex.title.toLowerCase().includes(q) && !ex.description.toLowerCase().includes(q)) return false;
     }
+    if (filterPending && !(pendingCounts?.[ex.id] && pendingCounts[ex.id] > 0)) return false;
     return true;
   });
 
@@ -144,15 +146,34 @@ export default function CourseExercisesPage() {
       ) : (
         <>
           {(assignedExercises || []).length > 0 && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                data-testid="input-search-course-exercises"
-                className="pl-10"
-                placeholder="Buscar en ejercicios del curso..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  data-testid="input-search-course-exercises"
+                  className="pl-10"
+                  placeholder="Buscar en ejercicios del curso..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={filterPending ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setFilterPending(!filterPending)}
+                  data-testid="filter-pending"
+                >
+                  <Send className="w-3 h-3" />
+                  Pendientes
+                </Button>
+                {(searchQuery || filterPending) && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setSearchQuery(""); setFilterPending(false); }} data-testid="button-clear-filters">
+                    Limpiar filtros
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

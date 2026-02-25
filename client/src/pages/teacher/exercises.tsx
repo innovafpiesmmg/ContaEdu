@@ -9,24 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2, Paperclip, X, File, Search, Filter, FolderOpen, GraduationCap, FileSpreadsheet } from "lucide-react";
+import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, CheckCircle, FileUp, Link2, Paperclip, X, File, Search, FolderOpen, GraduationCap, FileSpreadsheet } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import type { Exercise, Course, ExerciseSubmission, ExerciseDocument, JournalEntry, JournalLine, Exam, ExerciseCollection } from "@shared/schema";
+import type { Exercise, Course, ExerciseDocument, ExerciseCollection } from "@shared/schema";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-
-interface JournalEntryWithLines extends JournalEntry {
-  lines: JournalLine[];
-}
-
-interface SubmissionWithStudent extends ExerciseSubmission {
-  studentName: string;
-  studentUsername: string;
-}
 
 function generateExerciseTemplate(): string {
   return `# Ejercicio: Operaciones básicas de compraventa
@@ -324,36 +314,24 @@ function ExerciseCard({
   collections,
   onViewSolution,
   onUploadSolution,
-  onViewSubmissions,
   onDelete,
   onAssign,
   onUnassign,
   onAddToCollection,
   onRemoveFromCollection,
   onUpdateLevel,
-  showSubmissions,
-  submissions,
-  onReview,
-  linkedExam,
-  pendingCount,
 }: {
   ex: Exercise;
   courses: Course[];
   collections: ExerciseCollection[];
   onViewSolution: () => void;
   onUploadSolution: () => void;
-  onViewSubmissions: () => void;
   onDelete: () => void;
   onAssign: (courseId: string) => void;
   onUnassign: (courseId: string) => void;
   onAddToCollection: (collectionId: string) => void;
   onRemoveFromCollection: (collectionId: string) => void;
   onUpdateLevel: (level: string) => void;
-  showSubmissions: boolean;
-  submissions?: SubmissionWithStudent[];
-  onReview: (s: SubmissionWithStudent) => void;
-  linkedExam?: Exam;
-  pendingCount?: number;
 }) {
   const { toast } = useToast();
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -467,12 +445,6 @@ function ExerciseCard({
                     {ex.recommendedLevel.toUpperCase()}
                   </Badge>
                 )}
-                {linkedExam && (
-                  <Badge variant="destructive" className="text-xs gap-1">
-                    <ClipboardList className="w-3 h-3" />
-                    Examen: {linkedExam.title}
-                  </Badge>
-                )}
                 {ex.customAccountPlan && (
                   <Badge variant="outline" className="text-xs gap-1 border-purple-300 text-purple-600 dark:text-purple-400">
                     <FileSpreadsheet className="w-3 h-3" />
@@ -498,12 +470,6 @@ function ExerciseCard({
                     {c.name}
                   </Badge>
                 ))}
-                {pendingCount && pendingCount > 0 ? (
-                  <Badge variant="destructive" className="text-xs gap-1 animate-pulse">
-                    <Send className="w-3 h-3" />
-                    {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
-                  </Badge>
-                ) : null}
               </div>
             </div>
           </div>
@@ -646,9 +612,6 @@ function ExerciseCard({
                 <FileUp className="w-4 h-4 text-muted-foreground" />
               </Button>
             )}
-            <Button size="icon" variant="ghost" onClick={onViewSubmissions} data-testid={`button-view-submissions-${ex.id}`} title="Ver entregas">
-              <Eye className="w-4 h-4 text-primary" />
-            </Button>
             <Button size="icon" variant="ghost" onClick={onDelete} data-testid={`button-delete-exercise-${ex.id}`}>
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>
@@ -727,207 +690,8 @@ function ExerciseCard({
           </div>
         )}
 
-        {showSubmissions && (
-          <div className="mt-4 pt-4 border-t">
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
-              <Send className="w-4 h-4" /> Entregas de alumnos
-            </h4>
-            {submissions && submissions.length > 0 ? (
-              <div className="space-y-2">
-                {submissions.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2" data-testid={`submission-row-${s.id}`}>
-                    <div>
-                      <span className="font-medium">{s.studentName}</span>
-                      <span className="text-xs text-muted-foreground ml-2">@{s.studentUsername}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={s.status === "reviewed" ? "default" : s.status === "submitted" ? "secondary" : "outline"}>
-                        {s.status === "reviewed" ? "Corregido" : s.status === "submitted" ? "Entregado" : "En curso"}
-                      </Badge>
-                      {s.grade && (
-                        <Badge variant="outline" className="gap-1"><Star className="w-3 h-3" /> {s.grade}</Badge>
-                      )}
-                      {(s.status === "submitted" || s.status === "reviewed") && (
-                        <Button size="sm" variant="outline" onClick={() => onReview(s)} data-testid={`button-review-${s.id}`}>
-                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> {s.status === "reviewed" ? "Reeditar" : "Corregir"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">Ningún alumno ha entregado este ejercicio</p>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
-  );
-}
-
-function ReviewContent({
-  submission,
-  gradeText,
-  setGradeText,
-  feedbackText,
-  setFeedbackText,
-  onSubmit,
-  isPending,
-}: {
-  submission: SubmissionWithStudent | null;
-  gradeText: string;
-  setGradeText: (v: string) => void;
-  feedbackText: string;
-  setFeedbackText: (v: string) => void;
-  onSubmit: () => void;
-  isPending: boolean;
-}) {
-  const { data: studentEntries } = useQuery<JournalEntryWithLines[]>({
-    queryKey: ["/api/audit/students", submission?.studentId, "journal", submission?.exerciseId],
-    queryFn: () => fetch(`/api/audit/students/${submission!.studentId}/journal?exerciseId=${submission!.exerciseId}`, { credentials: "include" }).then(r => r.json()),
-    enabled: !!submission,
-  });
-
-  const { data: solutionData } = useQuery<{ solution: SolutionEntry[] | null }>({
-    queryKey: ["/api/exercises", submission?.exerciseId, "solution"],
-    queryFn: () => fetch(`/api/exercises/${submission!.exerciseId}/solution`, { credentials: "include" }).then(r => r.json()),
-    enabled: !!submission,
-  });
-
-  const solution = solutionData?.solution || [];
-  const totalPoints = solution.reduce((s, e) => s + (e.points || 0), 0);
-
-  return (
-    <div className="space-y-4 pt-2">
-      <Tabs defaultValue="student" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="student" data-testid="tab-student-entries">
-            Asientos del alumno ({studentEntries?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="solution" data-testid="tab-solution">
-            Solución ({solution.length}{totalPoints > 0 ? ` · ${totalPoints} pts` : ""})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="student" className="mt-3 max-h-[40vh] overflow-y-auto">
-          {studentEntries && studentEntries.length > 0 ? (
-            <div className="space-y-2">
-              {studentEntries.map(entry => (
-                <div key={entry.id} className="bg-muted/50 rounded-md px-3 py-2 text-sm" data-testid={`student-entry-${entry.id}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="secondary" className="font-mono text-[10px]">#{entry.entryNumber}</Badge>
-                    <span className="font-medium">{entry.description}</span>
-                    <span className="text-xs text-muted-foreground">{entry.date}</span>
-                  </div>
-                  {entry.lines && entry.lines.length > 0 && (
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-muted-foreground">
-                          <th className="text-left py-0.5">Cuenta</th>
-                          <th className="text-right py-0.5">Debe</th>
-                          <th className="text-right py-0.5">Haber</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {entry.lines.map((line: JournalLine) => (
-                          <tr key={line.id} className="border-t border-muted">
-                            <td className="py-0.5">{line.accountCode} {line.accountName}</td>
-                            <td className="text-right py-0.5 font-mono">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
-                            <td className="text-right py-0.5 font-mono">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">El alumno no ha registrado asientos para este ejercicio</p>
-          )}
-        </TabsContent>
-
-        <TabsContent value="solution" className="mt-3 max-h-[40vh] overflow-y-auto">
-          {solution.length > 0 ? (
-            <div className="space-y-2">
-              {solution.map((entry: SolutionEntry, i: number) => (
-                <div key={i} className="bg-green-50 dark:bg-green-950/20 rounded-md px-3 py-2 text-sm border border-green-200 dark:border-green-800" data-testid={`solution-entry-${i}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="secondary" className="font-mono text-[10px]">#{entry.entryNumber}</Badge>
-                    <span className="font-medium">{entry.description}</span>
-                    <span className="text-xs text-muted-foreground">{entry.date}</span>
-                    {entry.points !== undefined && (
-                      <Badge variant="outline" className="text-[10px] text-green-600 border-green-300">{entry.points} pts</Badge>
-                    )}
-                  </div>
-                  {entry.enunciado && (
-                    <p className="text-xs text-muted-foreground italic mb-1">{entry.enunciado}</p>
-                  )}
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-muted-foreground">
-                        <th className="text-left py-0.5">Cuenta</th>
-                        <th className="text-right py-0.5">Debe</th>
-                        <th className="text-right py-0.5">Haber</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entry.lines.map((line: SolutionLine, j: number) => (
-                        <tr key={j} className="border-t border-green-200 dark:border-green-800">
-                          <td className="py-0.5">{line.accountCode} {line.accountName}</td>
-                          <td className="text-right py-0.5 font-mono">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
-                          <td className="text-right py-0.5 font-mono">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toLocaleString("es-ES", { minimumFractionDigits: 2 }) : ""}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay solución cargada para este ejercicio</p>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <Separator />
-
-      <div className="grid grid-cols-[1fr_2fr] gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">Nota (0-10)</Label>
-          <Input
-            data-testid="input-review-grade"
-            type="number"
-            min="0"
-            max="10"
-            step="0.25"
-            value={gradeText}
-            onChange={e => setGradeText(e.target.value)}
-            placeholder="Ej: 7.50"
-            className="h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Retroalimentación</Label>
-          <Textarea
-            data-testid="input-review-feedback"
-            value={feedbackText}
-            onChange={e => setFeedbackText(e.target.value)}
-            placeholder="Escribe aquí tu retroalimentación para el alumno..."
-            rows={3}
-          />
-        </div>
-      </div>
-      <Button
-        data-testid="button-send-review"
-        className="w-full"
-        onClick={onSubmit}
-        disabled={!feedbackText || isPending}
-      >
-        {isPending ? "Enviando..." : "Enviar corrección"}
-      </Button>
-    </div>
   );
 }
 
@@ -935,10 +699,6 @@ export default function ExercisesPage() {
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [viewSubmissionsId, setViewSubmissionsId] = useState<string | null>(null);
-  const [reviewingSubmission, setReviewingSubmission] = useState<SubmissionWithStudent | null>(null);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [gradeText, setGradeText] = useState("");
   const [form, setForm] = useState({ title: "", description: "", exerciseType: "practice" as string, recommendedLevel: "" as string });
   const [solutionExerciseId, setSolutionExerciseId] = useState<string | null>(null);
   const [solutionText, setSolutionText] = useState("");
@@ -949,7 +709,6 @@ export default function ExercisesPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterLevel, setFilterLevel] = useState<string>("all");
   const [filterCollection, setFilterCollection] = useState<string>("all");
-  const [filterPending, setFilterPending] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDesc, setNewCollectionDesc] = useState("");
@@ -960,8 +719,6 @@ export default function ExercisesPage() {
 
   const { data: exercises, isLoading } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
-  const { data: exams } = useQuery<Exam[]>({ queryKey: ["/api/exams"] });
-  const { data: pendingCounts } = useQuery<Record<string, number>>({ queryKey: ["/api/submissions/pending-counts"] });
   const { data: collections } = useQuery<ExerciseCollection[]>({ queryKey: ["/api/collections"] });
 
   const { data: collectionExerciseIds } = useQuery<string[]>({
@@ -980,14 +737,8 @@ export default function ExercisesPage() {
       if (filterLevel === "none" && ex.recommendedLevel) return false;
       else if (filterLevel !== "none" && ex.recommendedLevel !== filterLevel) return false;
     }
-    if (filterPending && !(pendingCounts?.[ex.id] && pendingCounts[ex.id] > 0)) return false;
     if (filterCollection !== "all" && collectionExerciseIds && !collectionExerciseIds.includes(ex.id)) return false;
     return true;
-  });
-
-  const { data: submissions } = useQuery<SubmissionWithStudent[]>({
-    queryKey: [`/api/submissions/exercise/${viewSubmissionsId}`],
-    enabled: !!viewSubmissionsId,
   });
 
   const createMutation = useMutation({
@@ -1091,25 +842,6 @@ export default function ExercisesPage() {
       }
       setViewSolutionId(null);
       toast({ title: "Solución eliminada" });
-    },
-  });
-
-  const reviewMutation = useMutation({
-    mutationFn: (subId: string) =>
-      apiRequest("POST", `/api/submissions/${subId}/review`, {
-        feedback: feedbackText,
-        grade: gradeText || null,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/submissions/exercise/${viewSubmissionsId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/submissions/pending-counts"] });
-      setReviewingSubmission(null);
-      setFeedbackText("");
-      setGradeText("");
-      toast({ title: "Retroalimentacion enviada" });
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
@@ -1382,19 +1114,9 @@ export default function ExercisesPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            variant={filterPending ? "default" : "outline"}
-            size="sm"
-            className="h-8 text-xs gap-1"
-            onClick={() => setFilterPending(!filterPending)}
-            data-testid="filter-pending"
-          >
-            <Send className="w-3 h-3" />
-            Pendientes
-          </Button>
-          {(searchQuery || filterType !== "all" || filterLevel !== "all" || filterCollection !== "all" || filterPending) && (
+          {(searchQuery || filterType !== "all" || filterLevel !== "all" || filterCollection !== "all") && (
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {
-              setSearchQuery(""); setFilterType("all"); setFilterLevel("all"); setFilterCollection("all"); setFilterPending(false);
+              setSearchQuery(""); setFilterType("all"); setFilterLevel("all"); setFilterCollection("all");
             }} data-testid="button-clear-filters">
               <X className="w-3 h-3 mr-1" /> Limpiar
             </Button>
@@ -1418,20 +1140,14 @@ export default function ExercisesPage() {
                 ex={ex}
                 courses={courses || []}
                 collections={collections || []}
-                linkedExam={exams?.find(e => e.exerciseId === ex.id)}
-                pendingCount={pendingCounts?.[ex.id] || 0}
                 onViewSolution={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
                 onUploadSolution={() => { setSolutionExerciseId(ex.id); setSolutionText(""); }}
-                onViewSubmissions={() => setViewSubmissionsId(viewSubmissionsId === ex.id ? null : ex.id)}
                 onDelete={() => deleteMutation.mutate(ex.id)}
                 onAssign={(courseId) => assignMutation.mutate({ exerciseId: ex.id, courseId })}
                 onUnassign={(courseId) => unassignMutation.mutate({ exerciseId: ex.id, courseId })}
                 onAddToCollection={(collectionId) => addToCollectionMutation.mutate({ collectionId, exerciseId: ex.id })}
                 onRemoveFromCollection={(collectionId) => removeFromCollectionMutation.mutate({ collectionId, exerciseId: ex.id })}
                 onUpdateLevel={(level) => updateExerciseMutation.mutate({ id: ex.id, recommendedLevel: level })}
-                showSubmissions={viewSubmissionsId === ex.id}
-                submissions={viewSubmissionsId === ex.id ? submissions : undefined}
-                onReview={(s) => { setReviewingSubmission(s); setFeedbackText(s.feedback || ""); setGradeText(s.grade || ""); }}
               />
           ))}
         </motion.div>
@@ -1517,22 +1233,6 @@ export default function ExercisesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!reviewingSubmission} onOpenChange={(open) => !open && setReviewingSubmission(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Corregir ejercicio - {reviewingSubmission?.studentName}</DialogTitle>
-          </DialogHeader>
-          <ReviewContent
-            submission={reviewingSubmission}
-            gradeText={gradeText}
-            setGradeText={setGradeText}
-            feedbackText={feedbackText}
-            setFeedbackText={setFeedbackText}
-            onSubmit={() => reviewingSubmission && reviewMutation.mutate(reviewingSubmission.id)}
-            isPending={reviewMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
       <Dialog open={!!solutionExerciseId} onOpenChange={(open) => { if (!open) { setSolutionExerciseId(null); setSolutionText(""); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
