@@ -34,6 +34,7 @@ import AccountsPage from "@/pages/student/accounts";
 import StudentExercisesPage from "@/pages/student/student-exercises";
 import ManualPage from "@/pages/student/manual";
 import StudentExamsPage from "@/pages/student/student-exams";
+import StudentGradesPage from "@/pages/student/student-grades";
 import AnaliticaPage from "@/pages/student/analitica";
 import ProfilePage from "@/pages/profile";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -78,6 +79,7 @@ function StudentRouter() {
       <Route path="/accounts" component={AccountsPage} />
       <Route path="/exercises" component={StudentExercisesPage} />
       <Route path="/exams" component={StudentExamsPage} />
+      <Route path="/grades" component={StudentGradesPage} />
       <Route path="/manual" component={ManualPage} />
       <Route path="/analitica" component={AnaliticaPage} />
       <Route path="/profile" component={ProfilePage} />

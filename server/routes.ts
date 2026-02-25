@@ -870,6 +870,57 @@ export async function registerRoutes(
     res.json(balance);
   });
 
+  // Student grades - consolidated view
+  app.get("/api/student/grades", requireRole("student"), async (req: any, res) => {
+    try {
+      const user = req.user;
+      if (!user.courseId) return res.json({ exercises: [], exams: [] });
+
+      const courseExerciseRows = await db.select().from(courseExercises).where(eq(courseExercises.courseId, user.courseId));
+      const exerciseIds = courseExerciseRows.map(ce => ce.exerciseId);
+
+      const courseExams = await storage.getExamsByCourse(user.courseId);
+      const examExerciseIds = courseExams.map(e => e.exerciseId);
+
+      const exerciseGrades = [];
+      for (const eid of exerciseIds) {
+        if (examExerciseIds.includes(eid)) continue;
+        const ex = await storage.getExercise(eid);
+        if (!ex) continue;
+        const submission = await storage.getExerciseSubmission(eid, user.id);
+        exerciseGrades.push({
+          exerciseId: ex.id,
+          title: ex.title,
+          type: ex.exerciseType,
+          status: submission?.status || "not_started",
+          grade: submission?.grade || null,
+          feedback: submission?.feedback || null,
+          submittedAt: submission?.submittedAt || null,
+          reviewedAt: submission?.reviewedAt || null,
+        });
+      }
+
+      const examGrades = [];
+      for (const exam of courseExams) {
+        const attempt = await storage.getExamAttempt(exam.id, user.id);
+        examGrades.push({
+          examId: exam.id,
+          title: exam.title,
+          durationMinutes: exam.durationMinutes,
+          status: attempt?.status || "not_started",
+          grade: attempt?.grade || null,
+          feedback: attempt?.feedback || null,
+          submittedAt: attempt?.submittedAt || null,
+          reviewedAt: attempt?.reviewedAt || null,
+        });
+      }
+
+      res.json({ exercises: exerciseGrades, exams: examGrades });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // Exercise submissions - Student marks exercise as finished
   app.get("/api/submissions", requireAuth, async (req: any, res) => {
     const user = await storage.getUser(req.session.userId);

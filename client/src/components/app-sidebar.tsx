@@ -66,6 +66,7 @@ export function AppSidebar() {
     { title: "Mi Escritorio", url: "/", icon: LayoutDashboard },
     { title: "Ejercicios", url: "/exercises", icon: ClipboardList },
     { title: "Exámenes", url: "/exams", icon: FileQuestion },
+    { title: "Mis Calificaciones", url: "/grades", icon: Award },
     { title: "Libro Diario", url: "/journal", icon: BookOpenCheck },
     { title: "Libro Mayor", url: "/ledger", icon: FileText },
     { title: "Balances", url: "/balances", icon: BarChart3 },
