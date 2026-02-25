@@ -569,6 +569,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/exercises/:id", requireAuth, async (req: any, res) => {
+    try {
+      const exercise = await storage.getExercise(req.params.id);
+      if (!exercise) return res.status(404).json({ message: "Ejercicio no encontrado" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "No autenticado" });
+      if (user.role === "student") {
+        const courseExList = await storage.getExercisesForCourse(user.courseId || "");
+        const isAssigned = courseExList.some(e => e.id === exercise.id);
+        if (!isAssigned) {
+          const courseExams = await storage.getExamsByCourse(user.courseId || "");
+          const isExamExercise = courseExams.some(ex => ex.exerciseId === exercise.id);
+          if (!isExamExercise) return res.status(403).json({ message: "Sin acceso" });
+        }
+      }
+      res.json(exercise);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/exercises", requireRole("teacher"), async (req: any, res) => {
     try {
       const exercise = await storage.createExercise({

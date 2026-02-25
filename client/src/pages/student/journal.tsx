@@ -279,10 +279,23 @@ export default function JournalPage() {
   const { data: submissions } = useQuery<ExerciseSubmission[]>({ queryKey: ["/api/submissions"] });
   const { data: exams } = useQuery<Exam[]>({ queryKey: ["/api/exams"] });
 
-  const currentExercise = exercises?.find(e => e.id === currentExerciseId);
+  const exerciseFromList = exercises?.find(e => e.id === currentExerciseId);
+  const examExercise = activeExamData?.exam?.exerciseId === currentExerciseId ? activeExamData : null;
+
+  const { data: fetchedExamExercise } = useQuery<Exercise>({
+    queryKey: ["/api/exercises", currentExerciseId, "detail"],
+    queryFn: async () => {
+      const res = await fetch(`/api/exercises/${currentExerciseId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Error");
+      return res.json();
+    },
+    enabled: !!currentExerciseId && !exerciseFromList && !!examExercise,
+  });
+
+  const currentExercise = exerciseFromList || fetchedExamExercise || null;
   const currentSubmission = submissions?.find(s => s.exerciseId === currentExerciseId);
   const isSubmitted = currentSubmission?.status === "submitted" || currentSubmission?.status === "reviewed";
-  const linkedExam = exams?.find(exam => exam.exerciseId === currentExerciseId);
+  const linkedExam = exams?.find(exam => exam.exerciseId === currentExerciseId) || (examExercise ? activeExamData?.exam : null);
 
   const createMutation = useMutation({
     mutationFn: () => {
