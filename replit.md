@@ -90,6 +90,17 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 4. Teacher clicks "Corregir" to add grade (0-10) and feedback
 5. Student sees feedback and grade on their exercises page
 
+## Exercise Classification & Collections
+- Exercises can have a `recommendedLevel` (cfgm/cfgs) shown as blue badge on cards
+- Exercises can have a `customAccountPlan` (PDF file) downloadable by students from journal page
+- Teachers can create collections to organize exercises (many-to-many relationship)
+- Collection badges (amber) shown on exercise cards; collection management via dialog
+- Teacher exercises page has search bar (title/description), filter dropdowns (type/level/collection/pending)
+- API: `GET/POST/PATCH/DELETE /api/collections`, `POST/DELETE /api/collections/:id/exercises/:exerciseId`
+- API: `GET /api/exercises/:id/collections`, `PATCH /api/exercises/:id` (update level etc.)
+- API: `POST/GET/DELETE /api/exercises/:id/account-plan` (PDF upload/serve/delete)
+- Schema tables: `exerciseCollections`, `collectionExercises` (junction)
+
 ## MD Import Templates
 ### Exercise Template Format
 Each exercise can describe multiple accounting entries (asientos) within a single exercise. Solutions can optionally be included inline using `## Solución` with `### Asiento N` sub-headers containing Markdown tables.
@@ -97,6 +108,7 @@ Each exercise can describe multiple accounting entries (asientos) within a singl
 # Ejercicio: Title
 
 **Tipo:** practice|guided
+**Nivel:** cfgm|cfgs
 
 ## Descripción
 Description with multiple operations to record:

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock, CheckCircle, FileSpreadsheet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -318,6 +318,13 @@ export default function JournalPage() {
                 <Badge variant={currentSubmission?.status === "reviewed" ? "default" : "secondary"} className="text-xs">
                   {currentSubmission?.status === "reviewed" ? "Corregido" : "Entregado"}
                 </Badge>
+              )}
+              {currentExercise.customAccountPlan && (
+                <Button variant="outline" size="sm" className="h-6 text-xs gap-1" asChild data-testid="button-download-account-plan">
+                  <a href={`/api/exercises/${currentExercise.id}/account-plan`} target="_blank" rel="noopener noreferrer">
+                    <FileSpreadsheet className="w-3 h-3" /> PGC del ejercicio
+                  </a>
+                </Button>
               )}
               <Button
                 variant="ghost"

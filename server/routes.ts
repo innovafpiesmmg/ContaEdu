@@ -554,8 +554,23 @@ export async function registerRoutes(
         description: req.body.description,
         exerciseType: req.body.exerciseType || "practice",
         teacherId: req.user.id,
+        recommendedLevel: req.body.recommendedLevel || null,
       });
       res.json(exercise);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/exercises/:id", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const updates: any = {};
+      if (req.body.title !== undefined) updates.title = req.body.title;
+      if (req.body.description !== undefined) updates.description = req.body.description;
+      if (req.body.exerciseType !== undefined) updates.exerciseType = req.body.exerciseType;
+      if (req.body.recommendedLevel !== undefined) updates.recommendedLevel = req.body.recommendedLevel || null;
+      const updated = await storage.updateExercise(req.params.id, updates);
+      res.json(updated);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
@@ -897,6 +912,97 @@ export async function registerRoutes(
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
+  });
+
+  // Collections
+  app.get("/api/collections", requireRole("teacher"), async (req: any, res) => {
+    const collections = await storage.getCollections();
+    res.json(collections);
+  });
+
+  app.post("/api/collections", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const col = await storage.createCollection({
+        name: req.body.name,
+        description: req.body.description || null,
+        teacherId: req.user.id,
+      });
+      res.json(col);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/collections/:id", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const updated = await storage.updateCollection(req.params.id, {
+        name: req.body.name,
+        description: req.body.description,
+      });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/collections/:id", requireRole("teacher"), async (req: any, res) => {
+    await storage.deleteCollection(req.params.id);
+    res.json({ ok: true });
+  });
+
+  app.post("/api/collections/:id/exercises/:exerciseId", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const ce = await storage.addExerciseToCollection(req.params.id, req.params.exerciseId);
+      res.json(ce);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/collections/:id/exercises/:exerciseId", requireRole("teacher"), async (req: any, res) => {
+    await storage.removeExerciseFromCollection(req.params.id, req.params.exerciseId);
+    res.json({ ok: true });
+  });
+
+  app.get("/api/collections/:id/exercises", requireRole("teacher"), async (req: any, res) => {
+    const ids = await storage.getCollectionExerciseIds(req.params.id);
+    res.json(ids);
+  });
+
+  app.get("/api/exercises/:id/collections", requireRole("teacher"), async (req: any, res) => {
+    const ids = await storage.getExerciseCollectionIds(req.params.id);
+    res.json(ids);
+  });
+
+  // Account plan upload
+  app.post("/api/exercises/:id/account-plan", requireRole("teacher"), documentUpload.single("file"), async (req: any, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No se proporcionó archivo" });
+      const updated = await storage.updateExercise(req.params.id, {
+        customAccountPlan: req.file.filename,
+      });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/exercises/:id/account-plan", requireAuth, async (req: any, res) => {
+    const ex = await storage.getExercise(req.params.id);
+    if (!ex || !ex.customAccountPlan) return res.status(404).json({ message: "No hay plan de cuentas" });
+    const filePath = path.join(UPLOADS_DIR, ex.customAccountPlan);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ message: "Archivo no encontrado" });
+    res.sendFile(filePath);
+  });
+
+  app.delete("/api/exercises/:id/account-plan", requireRole("teacher"), async (req: any, res) => {
+    const ex = await storage.getExercise(req.params.id);
+    if (ex?.customAccountPlan) {
+      const filePath = path.join(UPLOADS_DIR, ex.customAccountPlan);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    await storage.updateExercise(req.params.id, { customAccountPlan: null });
+    res.json({ ok: true });
   });
 
   // Exams - Teacher management

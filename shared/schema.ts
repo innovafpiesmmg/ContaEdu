@@ -59,6 +59,8 @@ export const exercises = pgTable("exercises", {
   courseId: varchar("course_id"),
   teacherId: varchar("teacher_id").notNull(),
   solution: text("solution"),
+  recommendedLevel: varchar("recommended_level"),
+  customAccountPlan: text("custom_account_plan"),
 });
 
 export const exerciseDocuments = pgTable("exercise_documents", {
@@ -74,6 +76,19 @@ export const exerciseDocuments = pgTable("exercise_documents", {
 export const courseExercises = pgTable("course_exercises", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   courseId: varchar("course_id").notNull(),
+  exerciseId: varchar("exercise_id").notNull(),
+});
+
+export const exerciseCollections = pgTable("exercise_collections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  teacherId: varchar("teacher_id").notNull(),
+});
+
+export const collectionExercises = pgTable("collection_exercises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  collectionId: varchar("collection_id").notNull(),
   exerciseId: varchar("exercise_id").notNull(),
 });
 
@@ -161,6 +176,8 @@ export const insertExamAttemptSchema = createInsertSchema(examAttempts).omit({ i
 export const insertExerciseDocumentSchema = createInsertSchema(exerciseDocuments).omit({ id: true });
 export const insertCourseExerciseSchema = createInsertSchema(courseExercises).omit({ id: true });
 export const insertExerciseSubmissionSchema = createInsertSchema(exerciseSubmissions).omit({ id: true });
+export const insertExerciseCollectionSchema = createInsertSchema(exerciseCollections).omit({ id: true });
+export const insertCollectionExerciseSchema = createInsertSchema(collectionExercises).omit({ id: true });
 export const insertMailConfigSchema = createInsertSchema(mailConfig).omit({ id: true });
 export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true });
 
@@ -194,6 +211,10 @@ export type MailConfig = typeof mailConfig.$inferSelect;
 export type InsertMailConfig = z.infer<typeof insertMailConfigSchema>;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type ExerciseCollection = typeof exerciseCollections.$inferSelect;
+export type InsertExerciseCollection = z.infer<typeof insertExerciseCollectionSchema>;
+export type CollectionExercise = typeof collectionExercises.$inferSelect;
+export type InsertCollectionExercise = z.infer<typeof insertCollectionExerciseSchema>;
 
 // Login schema
 export const loginSchema = z.object({

@@ -3,7 +3,7 @@ import { eq, and, sql, count } from "drizzle-orm";
 import {
   users, schoolYears, systemConfig, courses, accounts, exercises, exerciseDocuments, courseExercises,
   journalEntries, journalLines, exams, examAttempts, exerciseSubmissions,
-  mailConfig, passwordResetTokens,
+  mailConfig, passwordResetTokens, exerciseCollections, collectionExercises,
   type User, type InsertUser,
   type SchoolYear, type InsertSchoolYear,
   type SystemConfig,
@@ -19,6 +19,8 @@ import {
   type ExerciseSubmission, type InsertExerciseSubmission,
   type MailConfig, type InsertMailConfig,
   type PasswordResetToken, type InsertPasswordResetToken,
+  type ExerciseCollection, type InsertExerciseCollection,
+  type CollectionExercise,
 } from "@shared/schema";
 
 function generateEnrollmentCode(): string {
@@ -104,6 +106,17 @@ export interface IStorage {
   submitExercise(exerciseId: string, studentId: string): Promise<ExerciseSubmission>;
   reviewExercise(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExerciseSubmission>;
   getPendingSubmissionCounts(): Promise<Record<string, number>>;
+
+  getExercise(id: string): Promise<Exercise | undefined>;
+  getCollections(): Promise<ExerciseCollection[]>;
+  createCollection(data: InsertExerciseCollection): Promise<ExerciseCollection>;
+  updateCollection(id: string, data: Partial<InsertExerciseCollection>): Promise<ExerciseCollection>;
+  deleteCollection(id: string): Promise<void>;
+  addExerciseToCollection(collectionId: string, exerciseId: string): Promise<CollectionExercise>;
+  removeExerciseFromCollection(collectionId: string, exerciseId: string): Promise<void>;
+  getExerciseCollectionIds(exerciseId: string): Promise<string[]>;
+  getCollectionExerciseIds(collectionId: string): Promise<string[]>;
+  updateExercise(id: string, data: Partial<InsertExercise>): Promise<Exercise>;
 
   updateUserPassword(id: string, hashedPassword: string): Promise<void>;
   updateUserEmail(id: string, email: string): Promise<void>;
@@ -540,6 +553,58 @@ export class DatabaseStorage implements IStorage {
       result[row.exerciseId] = row.count;
     }
     return result;
+  }
+
+  async getExercise(id: string): Promise<Exercise | undefined> {
+    const [ex] = await db.select().from(exercises).where(eq(exercises.id, id));
+    return ex;
+  }
+
+  async getCollections(): Promise<ExerciseCollection[]> {
+    return db.select().from(exerciseCollections);
+  }
+
+  async createCollection(data: InsertExerciseCollection): Promise<ExerciseCollection> {
+    const [created] = await db.insert(exerciseCollections).values(data).returning();
+    return created;
+  }
+
+  async updateCollection(id: string, data: Partial<InsertExerciseCollection>): Promise<ExerciseCollection> {
+    const [updated] = await db.update(exerciseCollections).set(data).where(eq(exerciseCollections.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCollection(id: string): Promise<void> {
+    await db.delete(collectionExercises).where(eq(collectionExercises.collectionId, id));
+    await db.delete(exerciseCollections).where(eq(exerciseCollections.id, id));
+  }
+
+  async addExerciseToCollection(collectionId: string, exerciseId: string): Promise<CollectionExercise> {
+    const [created] = await db.insert(collectionExercises).values({ collectionId, exerciseId }).returning();
+    return created;
+  }
+
+  async removeExerciseFromCollection(collectionId: string, exerciseId: string): Promise<void> {
+    await db.delete(collectionExercises).where(
+      and(eq(collectionExercises.collectionId, collectionId), eq(collectionExercises.exerciseId, exerciseId))
+    );
+  }
+
+  async getExerciseCollectionIds(exerciseId: string): Promise<string[]> {
+    const rows = await db.select({ collectionId: collectionExercises.collectionId })
+      .from(collectionExercises).where(eq(collectionExercises.exerciseId, exerciseId));
+    return rows.map(r => r.collectionId);
+  }
+
+  async getCollectionExerciseIds(collectionId: string): Promise<string[]> {
+    const rows = await db.select({ exerciseId: collectionExercises.exerciseId })
+      .from(collectionExercises).where(eq(collectionExercises.collectionId, collectionId));
+    return rows.map(r => r.exerciseId);
+  }
+
+  async updateExercise(id: string, data: Partial<InsertExercise>): Promise<Exercise> {
+    const [updated] = await db.update(exercises).set(data).where(eq(exercises.id, id)).returning();
+    return updated;
   }
 
   async updateUserPassword(id: string, hashedPassword: string): Promise<void> {

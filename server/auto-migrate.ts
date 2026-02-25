@@ -169,12 +169,28 @@ export async function runAutoMigrations() {
       used_at text
     )`);
 
+    await client.query(`CREATE TABLE IF NOT EXISTS exercise_collections (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      name text NOT NULL,
+      description text,
+      teacher_id varchar NOT NULL
+    )`);
+
+    await client.query(`CREATE TABLE IF NOT EXISTS collection_exercises (
+      id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+      collection_id varchar NOT NULL,
+      exercise_id varchar NOT NULL,
+      UNIQUE(collection_id, exercise_id)
+    )`);
+
     await addColumnIfNotExists(client, "users", "email", "text");
     await addColumnIfNotExists(client, "users", "created_by", "varchar");
     await addColumnIfNotExists(client, "courses", "enrollment_code", "text UNIQUE");
     await addColumnIfNotExists(client, "journal_entries", "exercise_id", "varchar");
     await addColumnIfNotExists(client, "accounts", "user_id", "varchar");
     await addColumnIfNotExists(client, "exercises", "solution", "text");
+    await addColumnIfNotExists(client, "exercises", "recommended_level", "varchar");
+    await addColumnIfNotExists(client, "exercises", "custom_account_plan", "text");
 
     // Make exercises.course_id nullable (for shared repository)
     await client.query(`ALTER TABLE exercises ALTER COLUMN course_id DROP NOT NULL`).catch(() => {});

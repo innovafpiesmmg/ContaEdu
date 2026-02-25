@@ -9,19 +9,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2, Paperclip, X, File } from "lucide-react";
+import { Plus, ClipboardList, Trash2, BookOpen, PenLine, Upload, Download, FileText, Send, Star, MessageSquare, Eye, CheckCircle, FileUp, Link2, Unlink2, Paperclip, X, File, Search, Filter, FolderOpen, GraduationCap, FileSpreadsheet } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import type { Exercise, Course, ExerciseSubmission, ExerciseDocument, JournalEntry, JournalLine, Exam } from "@shared/schema";
+import type { Exercise, Course, ExerciseSubmission, ExerciseDocument, JournalEntry, JournalLine, Exam, ExerciseCollection } from "@shared/schema";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 
 interface JournalEntryWithLines extends JournalEntry {
   lines: JournalLine[];
 }
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { motion } from "framer-motion";
 
 interface SubmissionWithStudent extends ExerciseSubmission {
   studentName: string;
@@ -275,14 +275,15 @@ function extractDescriptionEnunciados(description: string): Record<number, strin
   return enunciados;
 }
 
-function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> {
-  const exercises: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }> = [];
+function parseExercisesMD(md: string): Array<{ title: string; description: string; exerciseType: string; recommendedLevel?: string; solution?: SolutionEntry[] }> {
+  const exercises: Array<{ title: string; description: string; exerciseType: string; recommendedLevel?: string; solution?: SolutionEntry[] }> = [];
   const cleaned = md.replace(/^\uFEFF/, "");
   const blocks = cleaned.split(/(?=^\s*#\s+Ejercicio(?:\s+\d+)?:\s*)/m).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
     const titleMatch = block.match(/^\s*#\s+Ejercicio(?:\s+\d+)?:\s*(.+)$/m);
     const typeMatch = block.match(/\*\*Tipo:\*\*\s*(practice|guided)/i);
+    const levelMatch = block.match(/\*\*Nivel:\*\*\s*(cfgm|cfgs)/i);
 
     const solutionSplit = block.split(/^\s*##\s+Soluci[oó]n\s*$/im);
     const mainBlock = solutionSplit[0];
@@ -291,10 +292,11 @@ function parseExercisesMD(md: string): Array<{ title: string; description: strin
     const descMatch = mainBlock.match(/##\s+Descripci[oó]n\s*\n([\s\S]*?)$/i);
 
     if (titleMatch) {
-      const entry: { title: string; description: string; exerciseType: string; solution?: SolutionEntry[] } = {
+      const entry: { title: string; description: string; exerciseType: string; recommendedLevel?: string; solution?: SolutionEntry[] } = {
         title: titleMatch[1].trim(),
         exerciseType: typeMatch ? typeMatch[1].trim().toLowerCase() : "practice",
         description: descMatch ? descMatch[1].trim() : "",
+        recommendedLevel: levelMatch ? levelMatch[1].trim().toLowerCase() : undefined,
       };
 
       if (solutionBlock) {
@@ -319,12 +321,16 @@ function parseExercisesMD(md: string): Array<{ title: string; description: strin
 function ExerciseCard({
   ex,
   courses,
+  collections,
   onViewSolution,
   onUploadSolution,
   onViewSubmissions,
   onDelete,
   onAssign,
   onUnassign,
+  onAddToCollection,
+  onRemoveFromCollection,
+  onUpdateLevel,
   showSubmissions,
   submissions,
   onReview,
@@ -333,12 +339,16 @@ function ExerciseCard({
 }: {
   ex: Exercise;
   courses: Course[];
+  collections: ExerciseCollection[];
   onViewSolution: () => void;
   onUploadSolution: () => void;
   onViewSubmissions: () => void;
   onDelete: () => void;
   onAssign: (courseId: string) => void;
   onUnassign: (courseId: string) => void;
+  onAddToCollection: (collectionId: string) => void;
+  onRemoveFromCollection: (collectionId: string) => void;
+  onUpdateLevel: (level: string) => void;
   showSubmissions: boolean;
   submissions?: SubmissionWithStudent[];
   onReview: (s: SubmissionWithStudent) => void;
@@ -392,7 +402,44 @@ function ExerciseCard({
     },
   });
 
+  const { data: exerciseCollectionIds } = useQuery<string[]>({
+    queryKey: ["/api/exercises", ex.id, "collections"],
+    queryFn: () => fetch(`/api/exercises/${ex.id}/collections`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const accountPlanInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadAccountPlanMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/exercises/${ex.id}/account-plan`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
+      toast({ title: "Plan de cuentas subido" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteAccountPlanMutation = useMutation({
+    mutationFn: () => fetch(`/api/exercises/${ex.id}/account-plan`, { method: "DELETE", credentials: "include" }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
+      toast({ title: "Plan de cuentas eliminado" });
+    },
+  });
+
   const assignedCourses = courses.filter(c => assignedCourseIds?.includes(c.id));
+  const assignedCollections = collections.filter(c => exerciseCollectionIds?.includes(c.id));
   const docCount = documents?.length || 0;
 
   return (
@@ -414,10 +461,22 @@ function ExerciseCard({
                 <Badge variant={ex.exerciseType === "guided" ? "default" : "secondary"}>
                   {ex.exerciseType === "guided" ? "Guiado" : "Práctica"}
                 </Badge>
+                {ex.recommendedLevel && (
+                  <Badge variant="outline" className="text-xs gap-1 border-blue-300 text-blue-600 dark:text-blue-400">
+                    <GraduationCap className="w-3 h-3" />
+                    {ex.recommendedLevel.toUpperCase()}
+                  </Badge>
+                )}
                 {linkedExam && (
                   <Badge variant="destructive" className="text-xs gap-1">
                     <ClipboardList className="w-3 h-3" />
                     Examen: {linkedExam.title}
+                  </Badge>
+                )}
+                {ex.customAccountPlan && (
+                  <Badge variant="outline" className="text-xs gap-1 border-purple-300 text-purple-600 dark:text-purple-400">
+                    <FileSpreadsheet className="w-3 h-3" />
+                    PGC personalizado
                   </Badge>
                 )}
                 {docCount > 0 && (
@@ -433,6 +492,12 @@ function ExerciseCard({
                 ) : (
                   <Badge variant="outline" className="text-xs text-muted-foreground">Sin asignar</Badge>
                 )}
+                {assignedCollections.map(c => (
+                  <Badge key={c.id} variant="outline" className="text-xs gap-1 border-amber-300 text-amber-600 dark:text-amber-400">
+                    <FolderOpen className="w-3 h-3" />
+                    {c.name}
+                  </Badge>
+                ))}
                 {pendingCount && pendingCount > 0 ? (
                   <Badge variant="destructive" className="text-xs gap-1 animate-pulse">
                     <Send className="w-3 h-3" />
@@ -476,6 +541,90 @@ function ExerciseCard({
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">No hay cursos disponibles</p>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Colecciones"
+                  data-testid={`button-assign-collections-${ex.id}`}
+                >
+                  <FolderOpen className={`w-4 h-4 ${assignedCollections.length > 0 ? "text-amber-600" : "text-muted-foreground"}`} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-3" align="end">
+                <p className="text-sm font-medium mb-2">Colecciones</p>
+                {collections.length > 0 ? (
+                  <div className="space-y-2">
+                    {collections.map(c => {
+                      const isIn = exerciseCollectionIds?.includes(c.id) || false;
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={isIn}
+                            onCheckedChange={(checked) => {
+                              if (checked) onAddToCollection(c.id);
+                              else onRemoveFromCollection(c.id);
+                            }}
+                          />
+                          {c.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No hay colecciones. Crea una desde el botón "Colecciones".</p>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="ghost" title="Nivel y Plan de cuentas" data-testid={`button-level-plan-${ex.id}`}>
+                  <GraduationCap className={`w-4 h-4 ${ex.recommendedLevel ? "text-blue-600" : "text-muted-foreground"}`} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-3" align="end">
+                <p className="text-sm font-medium mb-2">Nivel recomendado</p>
+                <Select value={ex.recommendedLevel || "none"} onValueChange={v => onUpdateLevel(v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin especificar</SelectItem>
+                    <SelectItem value="cfgm">CFGM</SelectItem>
+                    <SelectItem value="cfgs">CFGS</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Separator className="my-3" />
+                <p className="text-sm font-medium mb-2">Plan de cuentas personalizado</p>
+                <input
+                  ref={accountPlanInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="hidden"
+                  onChange={e => {
+                    if (e.target.files?.[0]) uploadAccountPlanMutation.mutate(e.target.files[0]);
+                    e.target.value = "";
+                  }}
+                />
+                {ex.customAccountPlan ? (
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="text-xs flex-1" asChild>
+                      <a href={`/api/exercises/${ex.id}/account-plan`} target="_blank" rel="noopener noreferrer">
+                        <FileSpreadsheet className="w-3 h-3 mr-1" /> Ver PGC
+                      </a>
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-xs text-destructive" onClick={() => deleteAccountPlanMutation.mutate()}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => accountPlanInputRef.current?.click()}>
+                    <Upload className="w-3 h-3 mr-1" /> Subir PGC
+                  </Button>
                 )}
               </PopoverContent>
             </Popover>
@@ -790,12 +939,22 @@ export default function ExercisesPage() {
   const [reviewingSubmission, setReviewingSubmission] = useState<SubmissionWithStudent | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [gradeText, setGradeText] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", exerciseType: "practice" as string });
+  const [form, setForm] = useState({ title: "", description: "", exerciseType: "practice" as string, recommendedLevel: "" as string });
   const [solutionExerciseId, setSolutionExerciseId] = useState<string | null>(null);
   const [solutionText, setSolutionText] = useState("");
   const [viewSolutionId, setViewSolutionId] = useState<string | null>(null);
   const [editingEnunciados, setEditingEnunciados] = useState(false);
   const [enunciadoEdits, setEnunciadoEdits] = useState<Record<number, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterLevel, setFilterLevel] = useState<string>("all");
+  const [filterCourse, setFilterCourse] = useState<string>("all");
+  const [filterCollection, setFilterCollection] = useState<string>("all");
+  const [filterPending, setFilterPending] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [newCollectionDesc, setNewCollectionDesc] = useState("");
+  const [editingCollection, setEditingCollection] = useState<ExerciseCollection | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const solutionFileInputRef = useRef<HTMLInputElement>(null);
@@ -804,6 +963,28 @@ export default function ExercisesPage() {
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
   const { data: exams } = useQuery<Exam[]>({ queryKey: ["/api/exams"] });
   const { data: pendingCounts } = useQuery<Record<string, number>>({ queryKey: ["/api/submissions/pending-counts"] });
+  const { data: collections } = useQuery<ExerciseCollection[]>({ queryKey: ["/api/collections"] });
+
+  const { data: collectionExerciseIds } = useQuery<string[]>({
+    queryKey: ["/api/collections", filterCollection, "exercises"],
+    queryFn: () => fetch(`/api/collections/${filterCollection}/exercises`, { credentials: "include" }).then(r => r.json()).catch(() => []),
+    enabled: filterCollection !== "all",
+  });
+
+  const filteredExercises = (exercises || []).filter(ex => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!ex.title.toLowerCase().includes(q) && !ex.description.toLowerCase().includes(q)) return false;
+    }
+    if (filterType !== "all" && ex.exerciseType !== filterType) return false;
+    if (filterLevel !== "all") {
+      if (filterLevel === "none" && ex.recommendedLevel) return false;
+      else if (filterLevel !== "none" && ex.recommendedLevel !== filterLevel) return false;
+    }
+    if (filterPending && !(pendingCounts?.[ex.id] && pendingCounts[ex.id] > 0)) return false;
+    if (filterCollection !== "all" && collectionExerciseIds && !collectionExerciseIds.includes(ex.id)) return false;
+    return true;
+  });
 
   const { data: submissions } = useQuery<SubmissionWithStudent[]>({
     queryKey: [`/api/submissions/exercise/${viewSubmissionsId}`],
@@ -815,7 +996,7 @@ export default function ExercisesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
       setOpen(false);
-      setForm({ title: "", description: "", exerciseType: "practice" });
+      setForm({ title: "", description: "", exerciseType: "practice", recommendedLevel: "" });
       toast({ title: "Ejercicio creado correctamente" });
     },
     onError: (err: Error) => {
@@ -832,7 +1013,7 @@ export default function ExercisesPage() {
   });
 
   const importMutation = useMutation({
-    mutationFn: async (parsed: Array<{ title: string; description: string; exerciseType: string; solution?: SolutionEntry[] }>) => {
+    mutationFn: async (parsed: Array<{ title: string; description: string; exerciseType: string; recommendedLevel?: string; solution?: SolutionEntry[] }>) => {
       for (const ex of parsed) {
         const { solution, ...exerciseData } = ex;
         const res = await apiRequest("POST", "/api/exercises", exerciseData);
@@ -951,6 +1132,59 @@ export default function ExercisesPage() {
     },
   });
 
+  const createCollectionMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/collections", { name: newCollectionName, description: newCollectionDesc || null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      setNewCollectionName("");
+      setNewCollectionDesc("");
+      toast({ title: "Colección creada" });
+    },
+  });
+
+  const updateCollectionMutation = useMutation({
+    mutationFn: (col: ExerciseCollection) => apiRequest("PATCH", `/api/collections/${col.id}`, { name: col.name, description: col.description }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      setEditingCollection(null);
+      toast({ title: "Colección actualizada" });
+    },
+  });
+
+  const deleteCollectionMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/collections/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      toast({ title: "Colección eliminada" });
+    },
+  });
+
+  const addToCollectionMutation = useMutation({
+    mutationFn: ({ collectionId, exerciseId }: { collectionId: string; exerciseId: string }) =>
+      apiRequest("POST", `/api/collections/${collectionId}/exercises/${exerciseId}`),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "collections"] });
+      toast({ title: "Ejercicio añadido a la colección" });
+    },
+  });
+
+  const removeFromCollectionMutation = useMutation({
+    mutationFn: ({ collectionId, exerciseId }: { collectionId: string; exerciseId: string }) =>
+      apiRequest("DELETE", `/api/collections/${collectionId}/exercises/${exerciseId}`),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "collections"] });
+      toast({ title: "Ejercicio eliminado de la colección" });
+    },
+  });
+
+  const updateExerciseMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: string; recommendedLevel?: string }) =>
+      apiRequest("PATCH", `/api/exercises/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises"] });
+    },
+  });
+
   const handleImport = () => {
     const parsed = parseExercisesMD(importText);
     if (parsed.length === 0) {
@@ -1022,16 +1256,20 @@ export default function ExercisesPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Ejercicios</h1>
-          <p className="text-muted-foreground text-sm mt-1">Biblioteca de casos practicos</p>
+          <p className="text-muted-foreground text-sm mt-1">Biblioteca de casos prácticos — {filteredExercises.length} de {exercises?.length || 0}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="button-import-exercises">
+          <Button variant="outline" size="sm" onClick={() => setCollectionsOpen(true)} data-testid="button-manage-collections">
+            <FolderOpen className="w-4 h-4 mr-2" />
+            Colecciones
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} data-testid="button-import-exercises">
             <Upload className="w-4 h-4 mr-2" />
             Importar MD
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-create-exercise">
+              <Button size="sm" data-testid="button-create-exercise">
                 <Plus className="w-4 h-4 mr-2" />
                 Nuevo Ejercicio
               </Button>
@@ -1059,17 +1297,32 @@ export default function ExercisesPage() {
                     placeholder="Registrar la compra de mercaderias..."
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select value={form.exerciseType} onValueChange={v => setForm({ ...form, exerciseType: v })}>
-                    <SelectTrigger data-testid="select-exercise-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="guided">Guiado</SelectItem>
-                      <SelectItem value="practice">Practica Libre</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Tipo</Label>
+                    <Select value={form.exerciseType} onValueChange={v => setForm({ ...form, exerciseType: v })}>
+                      <SelectTrigger data-testid="select-exercise-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="guided">Guiado</SelectItem>
+                        <SelectItem value="practice">Práctica Libre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nivel recomendado</Label>
+                    <Select value={form.recommendedLevel || "none"} onValueChange={v => setForm({ ...form, recommendedLevel: v === "none" ? "" : v })}>
+                      <SelectTrigger data-testid="select-exercise-level">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin especificar</SelectItem>
+                        <SelectItem value="cfgm">CFGM</SelectItem>
+                        <SelectItem value="cfgs">CFGS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <Button
                   data-testid="button-save-exercise"
@@ -1085,21 +1338,87 @@ export default function ExercisesPage() {
         </div>
       </div>
 
+      {/* Search & Filters */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            data-testid="input-search-exercises"
+            className="pl-10"
+            placeholder="Buscar por título o descripción..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="filter-type">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los tipos</SelectItem>
+              <SelectItem value="guided">Guiado</SelectItem>
+              <SelectItem value="practice">Práctica</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterLevel} onValueChange={setFilterLevel}>
+            <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="filter-level">
+              <SelectValue placeholder="Nivel" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los niveles</SelectItem>
+              <SelectItem value="cfgm">CFGM</SelectItem>
+              <SelectItem value="cfgs">CFGS</SelectItem>
+              <SelectItem value="none">Sin nivel</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterCollection} onValueChange={setFilterCollection}>
+            <SelectTrigger className="w-[160px] h-8 text-xs" data-testid="filter-collection">
+              <SelectValue placeholder="Colección" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las colecciones</SelectItem>
+              {collections?.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant={filterPending ? "default" : "outline"}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setFilterPending(!filterPending)}
+            data-testid="filter-pending"
+          >
+            <Send className="w-3 h-3" />
+            Pendientes
+          </Button>
+          {(searchQuery || filterType !== "all" || filterLevel !== "all" || filterCollection !== "all" || filterPending) && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {
+              setSearchQuery(""); setFilterType("all"); setFilterLevel("all"); setFilterCollection("all"); setFilterPending(false);
+            }} data-testid="button-clear-filters">
+              <X className="w-3 h-3 mr-1" /> Limpiar
+            </Button>
+          )}
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
         </div>
-      ) : exercises && exercises.length > 0 ? (
+      ) : filteredExercises.length > 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="space-y-3"
         >
-          {exercises.map(ex => (
+          {filteredExercises.map(ex => (
               <ExerciseCard
                 key={ex.id}
                 ex={ex}
                 courses={courses || []}
+                collections={collections || []}
                 linkedExam={exams?.find(e => e.exerciseId === ex.id)}
                 pendingCount={pendingCounts?.[ex.id] || 0}
                 onViewSolution={() => setViewSolutionId(viewSolutionId === ex.id ? null : ex.id)}
@@ -1108,6 +1427,9 @@ export default function ExercisesPage() {
                 onDelete={() => deleteMutation.mutate(ex.id)}
                 onAssign={(courseId) => assignMutation.mutate({ exerciseId: ex.id, courseId })}
                 onUnassign={(courseId) => unassignMutation.mutate({ exerciseId: ex.id, courseId })}
+                onAddToCollection={(collectionId) => addToCollectionMutation.mutate({ collectionId, exerciseId: ex.id })}
+                onRemoveFromCollection={(collectionId) => removeFromCollectionMutation.mutate({ collectionId, exerciseId: ex.id })}
+                onUpdateLevel={(level) => updateExerciseMutation.mutate({ id: ex.id, recommendedLevel: level })}
                 showSubmissions={viewSubmissionsId === ex.id}
                 submissions={viewSubmissionsId === ex.id ? submissions : undefined}
                 onReview={(s) => { setReviewingSubmission(s); setFeedbackText(s.feedback || ""); setGradeText(s.grade || ""); }}
@@ -1413,6 +1735,73 @@ export default function ExercisesPage() {
                 </>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={collectionsOpen} onOpenChange={setCollectionsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gestionar colecciones</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="flex gap-2">
+              <Input
+                data-testid="input-new-collection-name"
+                value={newCollectionName}
+                onChange={e => setNewCollectionName(e.target.value)}
+                placeholder="Nombre de la colección"
+                className="flex-1"
+              />
+              <Button
+                size="sm"
+                onClick={() => createCollectionMutation.mutate()}
+                disabled={!newCollectionName.trim() || createCollectionMutation.isPending}
+                data-testid="button-create-collection"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            {collections && collections.length > 0 ? (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {collections.map(c => (
+                  <div key={c.id} className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2" data-testid={`collection-row-${c.id}`}>
+                    {editingCollection?.id === c.id ? (
+                      <div className="flex-1 flex gap-2">
+                        <Input
+                          value={editingCollection.name}
+                          onChange={e => setEditingCollection({ ...editingCollection, name: e.target.value })}
+                          className="h-7 text-sm"
+                        />
+                        <Button size="sm" variant="outline" className="h-7" onClick={() => updateCollectionMutation.mutate(editingCollection)}>
+                          <CheckCircle className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditingCollection(null)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-sm font-medium">{c.name}</span>
+                          {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingCollection(c)}>
+                            <PenLine className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={() => deleteCollectionMutation.mutate(c.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No hay colecciones. Crea una para organizar tus ejercicios.</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
