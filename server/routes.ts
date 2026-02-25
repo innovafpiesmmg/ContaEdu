@@ -1100,6 +1100,31 @@ export async function registerRoutes(
     }
   });
 
+  // Active exam for student (checks if student has an in-progress exam)
+  app.get("/api/exams/active", requireRole("student"), async (req: any, res) => {
+    try {
+      if (!req.user.courseId) return res.json(null);
+      const examList = await storage.getExamsByCourse(req.user.courseId);
+      for (const exam of examList) {
+        if (!exam.isActive) continue;
+        const attempt = await storage.getExamAttempt(exam.id, req.user.id);
+        if (attempt && attempt.status === "in_progress") {
+          const start = new Date(attempt.startedAt).getTime();
+          const elapsed = (Date.now() - start) / 1000 / 60;
+          if (elapsed > exam.durationMinutes) {
+            await storage.submitExamAttempt(attempt.id);
+            await db.update(examAttempts).set({ status: "expired" as any }).where(eq(examAttempts.id, attempt.id));
+            continue;
+          }
+          return res.json({ exam, attempt });
+        }
+      }
+      res.json(null);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/exams/:id", requireAuth, async (req: any, res) => {
     const exam = await storage.getExam(req.params.id);
     if (!exam) return res.status(404).json({ message: "Examen no encontrado" });

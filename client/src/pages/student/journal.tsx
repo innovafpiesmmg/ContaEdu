@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,17 +6,56 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock, CheckCircle, FileSpreadsheet } from "lucide-react";
+import { Plus, BookOpenCheck, Trash2, X, AlertCircle, ChevronDown, ChevronUp, FileText, File as FileIcon, Eye, Paperclip, AlertTriangle, Clock, CheckCircle, FileSpreadsheet, Send, Timer } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useExercise } from "@/lib/exercise-context";
 import { useLocation } from "wouter";
-import type { JournalEntry, JournalLine, Account, Exercise, Exam, ExerciseDocument, ExerciseSubmission } from "@shared/schema";
+import type { JournalEntry, JournalLine, Account, Exercise, Exam, ExamAttempt, ExerciseDocument, ExerciseSubmission } from "@shared/schema";
 import { motion } from "framer-motion";
+
+interface ActiveExamData {
+  exam: Exam;
+  attempt: ExamAttempt;
+}
 
 interface JournalEntryWithLines extends JournalEntry {
   lines: JournalLine[];
+}
+
+function ExamCountdownTimer({ startedAt, durationMinutes, onExpired }: {
+  startedAt: string;
+  durationMinutes: number;
+  onExpired: () => void;
+}) {
+  const [remaining, setRemaining] = useState<number>(0);
+
+  useEffect(() => {
+    const tick = () => {
+      const start = new Date(startedAt).getTime();
+      const end = start + durationMinutes * 60 * 1000;
+      const now = Date.now();
+      const left = Math.max(0, Math.floor((end - now) / 1000));
+      setRemaining(left);
+      if (left <= 0) onExpired();
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt, durationMinutes, onExpired]);
+
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  const isUrgent = remaining < 300;
+
+  return (
+    <div className={`flex items-center gap-1.5 font-mono text-lg font-bold ${isUrgent ? "text-red-600 animate-pulse" : "text-white"}`}>
+      <Timer className="w-5 h-5" />
+      {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
+    </div>
+  );
 }
 
 interface LineDraft {
@@ -189,8 +228,42 @@ export default function JournalPage() {
     { accountCode: "", accountName: "", debit: "", credit: "" },
   ]);
   const { toast } = useToast();
-  const { currentExerciseId } = useExercise();
+  const { currentExerciseId, setCurrentExerciseId } = useExercise();
   const [, setLocation] = useLocation();
+
+  const { data: activeExamData } = useQuery<ActiveExamData | null>({
+    queryKey: ["/api/exams/active"],
+    staleTime: 0,
+    refetchInterval: 30000,
+  });
+
+  useEffect(() => {
+    if (activeExamData?.exam && activeExamData.attempt?.status === "in_progress") {
+      if (currentExerciseId !== activeExamData.exam.exerciseId) {
+        setCurrentExerciseId(activeExamData.exam.exerciseId);
+      }
+    }
+  }, [activeExamData]);
+
+  const submitExamMutation = useMutation({
+    mutationFn: (examId: string) => apiRequest("POST", `/api/exams/${examId}/submit`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exams/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      toast({ title: "Examen entregado correctamente" });
+      setLocation("/exams");
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleExamExpired = useCallback(() => {
+    if (activeExamData?.exam) {
+      submitExamMutation.mutate(activeExamData.exam.id);
+      toast({ title: "Tiempo agotado", description: "El examen se ha entregado automáticamente", variant: "destructive" });
+    }
+  }, [activeExamData]);
 
   const { data: entries, isLoading } = useQuery<JournalEntryWithLines[]>({
     queryKey: ["/api/journal-entries", { exerciseId: currentExerciseId }],
@@ -286,6 +359,18 @@ export default function JournalPage() {
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
   if (!currentExerciseId) {
+    if (activeExamData?.exam && activeExamData.attempt?.status === "in_progress") {
+      return (
+        <div className="p-6 max-w-5xl mx-auto">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Skeleton className="h-8 w-48 mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm">Cargando examen...</p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="p-6 max-w-5xl mx-auto">
         <Card>
@@ -304,8 +389,55 @@ export default function JournalPage() {
     );
   }
 
+  const isActiveExam = activeExamData?.exam && activeExamData.attempt?.status === "in_progress" && currentExerciseId === activeExamData.exam.exerciseId;
+
   return (
     <div className="p-4 lg:p-6">
+      {isActiveExam && (
+        <div className="mb-4 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-lg" data-testid="exam-banner">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className="bg-white/20 text-white border-white/30 text-xs">EXAMEN EN CURSO</Badge>
+              </div>
+              <h2 className="text-lg font-bold">{activeExamData.exam.title}</h2>
+              {activeExamData.exam.instructions && (
+                <p className="text-sm text-white/80 mt-1">{activeExamData.exam.instructions}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <ExamCountdownTimer
+                startedAt={activeExamData.attempt.startedAt}
+                durationMinutes={activeExamData.exam.durationMinutes}
+                onExpired={handleExamExpired}
+              />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="secondary" size="sm" className="bg-white text-blue-700 hover:bg-blue-50" data-testid="button-submit-exam-journal">
+                    <Send className="w-4 h-4 mr-1.5" />
+                    Entregar examen
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Entregar examen</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Una vez entregado no podrás modificar tus respuestas. ¿Estás seguro/a?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => submitExamMutation.mutate(activeExamData.exam.id)}>
+                      Sí, entregar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Libro Diario</h1>
@@ -326,15 +458,17 @@ export default function JournalPage() {
                   </a>
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs text-muted-foreground"
-                onClick={() => linkedExam ? setLocation("/exams") : setLocation("/exercises")}
-                data-testid="button-change-exercise"
-              >
-                {linkedExam ? "Volver a exámenes" : "Cambiar ejercicio"}
-              </Button>
+              {!isActiveExam && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-muted-foreground"
+                  onClick={() => linkedExam ? setLocation("/exams") : setLocation("/exercises")}
+                  data-testid="button-change-exercise"
+                >
+                  {linkedExam ? "Volver a exámenes" : "Cambiar ejercicio"}
+                </Button>
+              )}
             </div>
           )}
         </div>

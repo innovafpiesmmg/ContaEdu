@@ -93,7 +93,9 @@ export default function StudentExamsPage() {
       if (exam) {
         setCurrentExerciseId(exam.exerciseId);
       }
-      toast({ title: "Examen iniciado. El temporizador esta en marcha." });
+      queryClient.invalidateQueries({ queryKey: ["/api/exams/active"] });
+      toast({ title: "Examen iniciado. El temporizador está en marcha." });
+      navigate("/journal");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -206,7 +208,11 @@ export default function StudentExamsPage() {
                 setActiveExamId(examId);
                 startMutation.mutate(examId);
               }}
-              onResume={(examId) => setActiveExamId(examId)}
+              onResume={(examId) => {
+                const exam = examList?.find(e => e.id === examId);
+                if (exam) setCurrentExerciseId(exam.exerciseId);
+                navigate("/journal");
+              }}
             />
           ))}
         </motion.div>
