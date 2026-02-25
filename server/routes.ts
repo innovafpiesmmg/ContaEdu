@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { examAttempts } from "@shared/schema";
+import { examAttempts, courseExercises, type Exercise } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -1166,6 +1166,90 @@ export async function registerRoutes(
       res.json(submitted);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Review exam attempt (teacher grades an exam)
+  app.post("/api/exam-attempts/:id/review", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const attempt = await storage.getExamAttemptById(req.params.id);
+      if (!attempt) return res.status(404).json({ message: "Intento no encontrado" });
+      const exam = await storage.getExam(attempt.examId);
+      if (!exam || exam.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+      const { feedback, grade } = req.body;
+      const reviewed = await storage.reviewExamAttempt(req.params.id, feedback || "", grade || null, req.user.id);
+      res.json(reviewed);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Grades management - get all grades for a course
+  app.get("/api/grades/:courseId", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const course = await storage.getCourseById(req.params.courseId);
+      if (!course || course.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+
+      const students = await storage.getUsersByCourse(req.params.courseId);
+
+      const courseExerciseRows = await db.select().from(courseExercises).where(eq(courseExercises.courseId, req.params.courseId));
+      const exerciseIds = courseExerciseRows.map(ce => ce.exerciseId);
+      const allExercises: Exercise[] = [];
+      for (const eid of exerciseIds) {
+        const ex = await storage.getExercise(eid);
+        if (ex) allExercises.push(ex);
+      }
+
+      const courseExams = await storage.getExamsByCourse(req.params.courseId);
+
+      const gradesData = [];
+      for (const student of students) {
+        const exerciseGrades = [];
+        for (const ex of allExercises) {
+          const isExamExercise = courseExams.some(exam => exam.exerciseId === ex.id);
+          if (isExamExercise) continue;
+          const submission = await storage.getExerciseSubmission(ex.id, student.id);
+          exerciseGrades.push({
+            exerciseId: ex.id,
+            exerciseTitle: ex.title,
+            status: submission?.status || "not_started",
+            grade: submission?.grade || null,
+            feedback: submission?.feedback || null,
+            submittedAt: submission?.submittedAt || null,
+            reviewedAt: submission?.reviewedAt || null,
+          });
+        }
+
+        const examGrades = [];
+        for (const exam of courseExams) {
+          const attempt = await storage.getExamAttempt(exam.id, student.id);
+          examGrades.push({
+            examId: exam.id,
+            examTitle: exam.title,
+            status: attempt?.status || "not_started",
+            grade: attempt?.grade || null,
+            feedback: attempt?.feedback || null,
+            submittedAt: attempt?.submittedAt || null,
+            reviewedAt: attempt?.reviewedAt || null,
+          });
+        }
+
+        gradesData.push({
+          studentId: student.id,
+          studentName: student.fullName,
+          username: student.username,
+          exerciseGrades,
+          examGrades,
+        });
+      }
+
+      res.json({
+        exercises: allExercises.filter(ex => !courseExams.some(exam => exam.exerciseId === ex.id)).map(ex => ({ id: ex.id, title: ex.title })),
+        exams: courseExams.map(ex => ({ id: ex.id, title: ex.title })),
+        students: gradesData,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

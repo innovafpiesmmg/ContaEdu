@@ -95,9 +95,11 @@ export interface IStorage {
   deleteExam(id: string): Promise<void>;
 
   getExamAttempt(examId: string, studentId: string): Promise<ExamAttempt | undefined>;
+  getExamAttemptById(id: string): Promise<ExamAttempt | undefined>;
   getExamAttemptsByExam(examId: string): Promise<ExamAttempt[]>;
   createExamAttempt(attempt: InsertExamAttempt): Promise<ExamAttempt>;
   submitExamAttempt(id: string): Promise<ExamAttempt>;
+  reviewExamAttempt(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExamAttempt>;
 
   getExerciseSubmission(exerciseId: string, studentId: string): Promise<ExerciseSubmission | undefined>;
   getExerciseSubmissionsByExercise(exerciseId: string): Promise<ExerciseSubmission[]>;
@@ -480,6 +482,19 @@ export class DatabaseStorage implements IStorage {
   async submitExamAttempt(id: string): Promise<ExamAttempt> {
     const [updated] = await db.update(examAttempts)
       .set({ submittedAt: new Date().toISOString(), status: "submitted" as any })
+      .where(eq(examAttempts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getExamAttemptById(id: string): Promise<ExamAttempt | undefined> {
+    const [attempt] = await db.select().from(examAttempts).where(eq(examAttempts.id, id));
+    return attempt;
+  }
+
+  async reviewExamAttempt(id: string, feedback: string, grade: string | null, reviewedBy: string): Promise<ExamAttempt> {
+    const [updated] = await db.update(examAttempts)
+      .set({ feedback, grade, reviewedAt: new Date().toISOString(), reviewedBy })
       .where(eq(examAttempts.id, id))
       .returning();
     return updated;

@@ -24,6 +24,7 @@ import TeacherExercisesPage from "@/pages/teacher/exercises";
 import StudentAuditPage from "@/pages/teacher/student-audit";
 import TeacherExamsPage from "@/pages/teacher/exams";
 import CourseExercisesPage from "@/pages/teacher/course-exercises";
+import GradesPage from "@/pages/teacher/grades";
 
 import StudentDashboard from "@/pages/student/dashboard";
 import JournalPage from "@/pages/student/journal";
@@ -60,6 +61,7 @@ function TeacherRouter() {
       <Route path="/exercises" component={TeacherExercisesPage} />
       <Route path="/course-exercises" component={CourseExercisesPage} />
       <Route path="/exams" component={TeacherExamsPage} />
+      <Route path="/grades" component={GradesPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>

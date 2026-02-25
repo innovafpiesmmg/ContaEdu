@@ -29,6 +29,7 @@ import {
   PieChart,
   UserCog,
   Library,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ export function AppSidebar() {
     { title: "Ejercicios del Curso", url: "/course-exercises", icon: ClipboardList },
     { title: "Repositorio", url: "/exercises", icon: Library },
     { title: "Exámenes", url: "/exams", icon: FileQuestion },
+    { title: "Calificaciones", url: "/grades", icon: Award },
     { title: "Mi Perfil", url: "/profile", icon: UserCog },
   ];
 

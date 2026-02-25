@@ -131,6 +131,10 @@ export const examAttempts = pgTable("exam_attempts", {
   startedAt: text("started_at").notNull(),
   submittedAt: text("submitted_at"),
   status: examStatusEnum("status").notNull().default("not_started"),
+  grade: decimal("grade", { precision: 5, scale: 2 }),
+  feedback: text("feedback"),
+  reviewedAt: text("reviewed_at"),
+  reviewedBy: varchar("reviewed_by"),
 });
 
 export const exerciseSubmissions = pgTable("exercise_submissions", {

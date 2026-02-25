@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileQuestion, Trash2, Clock, Users, Eye, ToggleLeft, ToggleRight, Upload, Download, FileText, BookOpen, X, Search } from "lucide-react";
+import { Plus, FileQuestion, Trash2, Clock, Users, Eye, ToggleLeft, ToggleRight, Upload, Download, FileText, BookOpen, X, Search, Star, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Exam, Exercise, Course } from "@shared/schema";
@@ -238,6 +238,8 @@ export default function TeacherExamsPage() {
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [exerciseFilterType, setExerciseFilterType] = useState<string>("all");
   const [exerciseFilterLevel, setExerciseFilterLevel] = useState<string>("all");
+  const [reviewingAttempt, setReviewingAttempt] = useState<any>(null);
+  const [reviewForm, setReviewForm] = useState({ grade: "", feedback: "" });
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -279,6 +281,20 @@ export default function TeacherExamsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
       toast({ title: "Examen eliminado" });
+    },
+  });
+
+  const reviewAttemptMutation = useMutation({
+    mutationFn: ({ attemptId, feedback, grade }: { attemptId: string; feedback: string; grade: string }) =>
+      apiRequest("POST", `/api/exam-attempts/${attemptId}/review`, { feedback, grade: grade || null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/exams/${viewAttempts}/attempts`] });
+      setReviewingAttempt(null);
+      setReviewForm({ grade: "", feedback: "" });
+      toast({ title: "Examen calificado correctamente" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
@@ -627,18 +643,85 @@ export default function TeacherExamsPage() {
                       {attempts && attempts.length > 0 ? (
                         <div className="space-y-2">
                           {attempts.map((a: any) => (
-                            <div key={a.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2">
-                              <span>{a.studentName}</span>
-                              <div className="flex items-center gap-2">
-                                <Badge variant={a.status === "submitted" ? "default" : a.status === "in_progress" ? "secondary" : "outline"}>
-                                  {a.status === "submitted" ? "Entregado" : a.status === "in_progress" ? "En curso" : a.status === "expired" ? "Expirado" : "Sin empezar"}
-                                </Badge>
-                                {a.submittedAt && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(a.submittedAt).toLocaleString("es-ES")}
-                                  </span>
-                                )}
+                            <div key={a.id} className="bg-muted/50 rounded-md px-3 py-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="font-medium">{a.studentName}</span>
+                                <div className="flex items-center gap-2">
+                                  {a.grade !== null && a.grade !== undefined && (
+                                    <Badge variant="outline" className="gap-1 border-green-300 text-green-700">
+                                      <Star className="w-3 h-3" /> {parseFloat(a.grade).toFixed(1)}
+                                    </Badge>
+                                  )}
+                                  <Badge variant={a.status === "submitted" ? "default" : a.status === "in_progress" ? "secondary" : a.grade ? "outline" : "outline"}>
+                                    {a.grade ? "Corregido" : a.status === "submitted" ? "Entregado" : a.status === "in_progress" ? "En curso" : a.status === "expired" ? "Expirado" : "Sin empezar"}
+                                  </Badge>
+                                  {(a.status === "submitted" || a.status === "expired") && (
+                                    <Button
+                                      size="sm"
+                                      variant={a.grade ? "outline" : "default"}
+                                      className="h-7 text-xs"
+                                      onClick={() => {
+                                        setReviewingAttempt(a);
+                                        setReviewForm({ grade: a.grade ? parseFloat(a.grade).toString() : "", feedback: a.feedback || "" });
+                                      }}
+                                      data-testid={`button-review-attempt-${a.id}`}
+                                    >
+                                      <MessageSquare className="w-3 h-3 mr-1" />
+                                      {a.grade ? "Reeditar" : "Calificar"}
+                                    </Button>
+                                  )}
+                                  {a.submittedAt && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(a.submittedAt).toLocaleString("es-ES")}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
+                              {a.feedback && !reviewingAttempt && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">"{a.feedback}"</p>
+                              )}
+                              {reviewingAttempt?.id === a.id && (
+                                <div className="mt-3 pt-3 border-t space-y-3">
+                                  <div className="grid grid-cols-[100px_1fr] gap-2 items-center">
+                                    <Label className="text-xs">Nota (0-10)</Label>
+                                    <Input
+                                      data-testid="input-exam-grade"
+                                      type="number"
+                                      min="0"
+                                      max="10"
+                                      step="0.1"
+                                      className="h-8 w-24"
+                                      value={reviewForm.grade}
+                                      onChange={e => setReviewForm({ ...reviewForm, grade: e.target.value })}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Feedback</Label>
+                                    <Textarea
+                                      data-testid="input-exam-feedback"
+                                      value={reviewForm.feedback}
+                                      onChange={e => setReviewForm({ ...reviewForm, feedback: e.target.value })}
+                                      placeholder="Comentarios sobre el examen..."
+                                      rows={2}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      disabled={reviewAttemptMutation.isPending}
+                                      onClick={() => reviewAttemptMutation.mutate({ attemptId: a.id, feedback: reviewForm.feedback, grade: reviewForm.grade })}
+                                      data-testid="button-submit-exam-review"
+                                    >
+                                      {reviewAttemptMutation.isPending ? "Guardando..." : "Guardar calificación"}
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setReviewingAttempt(null)} data-testid="button-cancel-exam-review">
+                                      Cancelar
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

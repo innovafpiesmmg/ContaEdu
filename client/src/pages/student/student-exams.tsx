@@ -248,7 +248,10 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
   });
 
   const examSubmission = exam.exerciseId ? submissions?.find(s => s.exerciseId === exam.exerciseId) : null;
-  const isReviewed = examSubmission?.status === "reviewed";
+  const hasAttemptGrade = attempt?.grade !== null && attempt?.grade !== undefined;
+  const isReviewed = hasAttemptGrade || examSubmission?.status === "reviewed";
+  const displayGrade = hasAttemptGrade ? attempt.grade : examSubmission?.grade;
+  const displayFeedback = (hasAttemptGrade ? attempt.feedback : examSubmission?.feedback) || null;
   const isSubmitted = attempt?.status === "submitted" || attempt?.status === "expired";
   const isInProgress = attempt?.status === "in_progress";
   const solution = solutionData?.solution || [];
@@ -278,9 +281,9 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
                 {isReviewed && (
                   <>
                     <Badge variant="default" className="bg-green-600">Corregido</Badge>
-                    {examSubmission?.grade && (
+                    {displayGrade && (
                       <Badge variant="outline" className="gap-1 text-green-600 border-green-300">
-                        <Star className="w-3 h-3" /> {examSubmission.grade} / 10
+                        <Star className="w-3 h-3" /> {parseFloat(displayGrade).toFixed(1)} / 10
                       </Badge>
                     )}
                   </>
@@ -289,10 +292,10 @@ function ExamCard({ exam, onStart, onResume }: { exam: Exam; onStart: (id: strin
                 {isInProgress && <Badge variant="secondary">En curso</Badge>}
               </div>
 
-              {isReviewed && examSubmission?.feedback && (
+              {isReviewed && displayFeedback && (
                 <div className="mt-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
                   <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Retroalimentación del profesor:</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{examSubmission.feedback}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{displayFeedback}</p>
                 </div>
               )}
             </div>

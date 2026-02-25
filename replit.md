@@ -31,6 +31,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `client/src/lib/auth.tsx` - Auth context provider
 - `client/src/lib/exercise-context.tsx` - Exercise selection context
 - `client/src/pages/teacher/course-exercises.tsx` - Course-specific exercise management (per course view)
+- `client/src/pages/teacher/grades.tsx` - Centralized grades management page (gradebook per course)
 - `client/src/pages/profile.tsx` - User profile (password change, email)
 - `client/src/pages/reset-password.tsx` - Password reset page
 - `scripts/change-admin-password.ts` - Console script for admin password
@@ -61,6 +62,8 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `GET /api/trial-balance` - Trial balance
 - `GET/POST /api/exams` - Exam management
 - `PATCH /api/exams/:id` - Toggle exam active
+- `POST /api/exam-attempts/:id/review` - Teacher grades an exam attempt (feedback + grade)
+- `GET /api/grades/:courseId` - Centralized grades view (exercises + exams per student)
 - `POST /api/exams/:examId/start` - Student starts exam
 - `POST /api/exams/:examId/submit` - Student submits exam
 - `GET /api/submissions` - Student's submissions list
