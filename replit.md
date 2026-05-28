@@ -52,6 +52,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `GET/POST/PATCH /api/users/students` - Student management (PATCH updates name/username/course)
 - `GET/POST/PATCH /api/courses` - Course management (PATCH updates name/description/year)
 - `GET/POST /api/accounts` - Chart of accounts (PGC)
+- `PATCH /api/accounts/:id/guide` - Update account guide (description + debit/credit usage) — teachers/admins only
 - `GET/POST /api/exercises` - Exercise management (shared repository, all teachers see all)
 - `GET /api/courses/:courseId/exercises` - Get exercises assigned to a specific course
 - `GET /api/exercises/:id/courses` - Get assigned course IDs for exercise
@@ -64,6 +65,7 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `PATCH /api/exams/:id` - Toggle exam active
 - `POST /api/exam-attempts/:id/review` - Teacher grades an exam attempt (feedback + grade)
 - `GET /api/grades/:courseId` - Centralized grades view (exercises + exams per student)
+- `GET /api/analytics/course/:courseId` - Course analytics (totals, completion, grades distribution, top/bottom students, per exercise/exam stats)
 - `GET /api/grades/:courseId/export.csv` - Export gradebook as CSV (semicolon-separated, UTF-8 BOM)
 - `GET /api/users/students/export.csv?courseId=` - Export students as CSV
 - `POST /api/users/students/import` - Bulk import students from CSV (body: `{ csv, courseId }`)

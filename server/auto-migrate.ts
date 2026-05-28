@@ -200,6 +200,9 @@ export async function runAutoMigrations() {
     await addColumnIfNotExists(client, "exam_attempts", "reviewed_at", "text");
     await addColumnIfNotExists(client, "exam_attempts", "reviewed_by", "varchar");
     await addColumnIfNotExists(client, "course_exercises", "due_date", "text");
+    await addColumnIfNotExists(client, "accounts", "description", "text");
+    await addColumnIfNotExists(client, "accounts", "debit_when", "text");
+    await addColumnIfNotExists(client, "accounts", "credit_when", "text");
 
     // Make exercises.course_id nullable (for shared repository)
     await client.query(`ALTER TABLE exercises ALTER COLUMN course_id DROP NOT NULL`).catch(() => {});

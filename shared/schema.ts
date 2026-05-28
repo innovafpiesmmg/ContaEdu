@@ -49,6 +49,9 @@ export const accounts = pgTable("accounts", {
   parentCode: text("parent_code"),
   isSystem: boolean("is_system").notNull().default(false),
   userId: varchar("user_id"),
+  description: text("description"),
+  debitWhen: text("debit_when"),
+  creditWhen: text("credit_when"),
 });
 
 export const exercises = pgTable("exercises", {

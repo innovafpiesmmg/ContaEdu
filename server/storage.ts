@@ -62,6 +62,7 @@ export interface IStorage {
   getAccountsForUser(userId: string): Promise<Account[]>;
   createAccount(account: InsertAccount): Promise<Account>;
   deleteAccount(id: string, userId: string): Promise<void>;
+  updateAccountGuide(id: string, data: { description?: string | null; debitWhen?: string | null; creditWhen?: string | null }): Promise<Account>;
 
   getExercises(): Promise<Exercise[]>;
   getExercisesByTeacher(teacherId: string): Promise<Exercise[]>;
@@ -274,6 +275,11 @@ export class DatabaseStorage implements IStorage {
     await db.delete(accounts).where(
       and(eq(accounts.id, id), eq(accounts.isSystem, false), eq(accounts.userId, userId))
     );
+  }
+
+  async updateAccountGuide(id: string, data: { description?: string | null; debitWhen?: string | null; creditWhen?: string | null }): Promise<Account> {
+    const [updated] = await db.update(accounts).set(data).where(eq(accounts.id, id)).returning();
+    return updated;
   }
 
   async getExercises(): Promise<Exercise[]> {

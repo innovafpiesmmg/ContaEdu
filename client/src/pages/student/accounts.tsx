@@ -1,12 +1,13 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, Plus, Trash2, Search, Download } from "lucide-react";
+import { BookOpen, Plus, Trash2, Search, Download, ChevronDown, Pencil, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +36,9 @@ export default function AccountsPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", accountType: "" });
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [guideForm, setGuideForm] = useState({ description: "", debitWhen: "", creditWhen: "" });
   const { data: accounts, isLoading } = useQuery<Account[]>({ queryKey: ["/api/accounts"] });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -60,6 +64,16 @@ export default function AccountsPage() {
     },
   });
 
+  const guideMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", `/api/accounts/${editAccount!.id}/guide`, guideForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+      setEditAccount(null);
+      toast({ title: "Guía actualizada" });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
   const filtered = accounts?.filter(a =>
     a.code.includes(search) || a.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -82,6 +96,22 @@ export default function AccountsPage() {
   };
 
   const isStudent = user?.role === "student";
+  const canEditGuide = user?.role === "teacher" || user?.role === "admin";
+
+  const toggleExpand = (id: string) => {
+    const next = new Set(expanded);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setExpanded(next);
+  };
+
+  const openGuideDialog = (a: Account) => {
+    setEditAccount(a);
+    setGuideForm({
+      description: a.description || "",
+      debitWhen: a.debitWhen || "",
+      creditWhen: a.creditWhen || "",
+    });
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -194,37 +224,86 @@ export default function AccountsPage() {
               </h3>
               <Card>
                 <CardContent className="p-0">
-                  {grouped[group].map((account, i) => (
-                    <div
-                      key={account.id}
-                      className={`flex items-center justify-between gap-3 px-4 py-3 ${i > 0 ? "border-t" : ""}`}
-                      data-testid={`account-${account.code}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-sm text-muted-foreground w-12">{account.code}</span>
-                        <span className="text-sm">{account.name}</span>
-                        {!account.isSystem && (
-                          <Badge variant="outline" className="text-[10px]">Personal</Badge>
+                  {grouped[group].map((account, i) => {
+                    const hasGuide = !!(account.description || account.debitWhen || account.creditWhen);
+                    const isOpen = expanded.has(account.id);
+                    return (
+                      <div key={account.id} className={i > 0 ? "border-t" : ""}>
+                        <div
+                          className={`flex items-center justify-between gap-3 px-4 py-3 ${hasGuide ? "cursor-pointer hover-elevate" : ""}`}
+                          data-testid={`account-${account.code}`}
+                          onClick={() => hasGuide && toggleExpand(account.id)}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {hasGuide ? (
+                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                            ) : (
+                              <span className="w-4" />
+                            )}
+                            <span className="font-mono text-sm text-muted-foreground w-12 shrink-0">{account.code}</span>
+                            <span className="text-sm truncate">{account.name}</span>
+                            {!account.isSystem && (
+                              <Badge variant="outline" className="text-[10px]">Personal</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-xs px-2 py-0.5 rounded-md ${typeColors[account.accountType] || ""}`}>
+                              {typeLabels[account.accountType] || account.accountType}
+                            </span>
+                            {canEditGuide && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); openGuideDialog(account); }}
+                                data-testid={`button-edit-guide-${account.code}`}
+                                title="Editar guía contable"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                              </Button>
+                            )}
+                            {isStudent && !account.isSystem && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(account.id); }}
+                                data-testid={`button-delete-account-${account.code}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {hasGuide && isOpen && (
+                          <div className="px-4 pb-4 pl-12 space-y-2 bg-muted/30" data-testid={`guide-${account.code}`}>
+                            {account.description && (
+                              <div className="text-sm">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
+                                  <Info className="w-3 h-3" /> Descripción
+                                </div>
+                                <p className="text-foreground/90 whitespace-pre-line">{account.description}</p>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {account.debitWhen && (
+                                <div className="text-sm border-l-2 border-blue-400 pl-3">
+                                  <div className="text-xs font-semibold text-blue-700 mb-1">Se carga (Debe) cuando…</div>
+                                  <p className="text-foreground/90 whitespace-pre-line">{account.debitWhen}</p>
+                                </div>
+                              )}
+                              {account.creditWhen && (
+                                <div className="text-sm border-l-2 border-amber-400 pl-3">
+                                  <div className="text-xs font-semibold text-amber-700 mb-1">Se abona (Haber) cuando…</div>
+                                  <p className="text-foreground/90 whitespace-pre-line">{account.creditWhen}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-0.5 rounded-md ${typeColors[account.accountType] || ""}`}>
-                          {typeLabels[account.accountType] || account.accountType}
-                        </span>
-                        {isStudent && !account.isSystem && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => deleteMutation.mutate(account.id)}
-                            data-testid={`button-delete-account-${account.code}`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             </div>
@@ -240,6 +319,56 @@ export default function AccountsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!editAccount} onOpenChange={o => { if (!o) setEditAccount(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Guía contable: <span className="font-mono">{editAccount?.code}</span> {editAccount?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Descripción de la cuenta</Label>
+              <Textarea
+                rows={3}
+                value={guideForm.description}
+                onChange={e => setGuideForm({ ...guideForm, description: e.target.value })}
+                placeholder="Qué representa esta cuenta, qué tipo de operaciones recoge..."
+                data-testid="textarea-guide-description"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-blue-700">Se carga (Debe) cuando…</Label>
+              <Textarea
+                rows={3}
+                value={guideForm.debitWhen}
+                onChange={e => setGuideForm({ ...guideForm, debitWhen: e.target.value })}
+                placeholder="Ej: aumenta el saldo del activo, se recibe un cobro..."
+                data-testid="textarea-guide-debit"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-amber-700">Se abona (Haber) cuando…</Label>
+              <Textarea
+                rows={3}
+                value={guideForm.creditWhen}
+                onChange={e => setGuideForm({ ...guideForm, creditWhen: e.target.value })}
+                placeholder="Ej: disminuye el saldo, se hace un pago..."
+                data-testid="textarea-guide-credit"
+              />
+            </div>
+            <Button
+              className="w-full"
+              data-testid="button-save-guide"
+              onClick={() => guideMutation.mutate()}
+              disabled={guideMutation.isPending}
+            >
+              {guideMutation.isPending ? "Guardando..." : "Guardar guía"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

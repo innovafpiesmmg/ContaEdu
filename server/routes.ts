@@ -553,6 +553,24 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // Update account guide (description + debit/credit usage) — admin/teacher only
+  app.patch("/api/accounts/:id/guide", requireRole("admin", "teacher"), async (req: any, res) => {
+    try {
+      const { description, debitWhen, creditWhen } = req.body;
+      const clean = (v: any) => (typeof v === "string" ? v.trim() || null : v === null ? null : undefined);
+      const data: any = {};
+      if (description !== undefined) data.description = clean(description);
+      if (debitWhen !== undefined) data.debitWhen = clean(debitWhen);
+      if (creditWhen !== undefined) data.creditWhen = clean(creditWhen);
+      if (Object.keys(data).length === 0) return res.status(400).json({ message: "Sin cambios" });
+      const updated = await storage.updateAccountGuide(req.params.id, data);
+      if (!updated) return res.status(404).json({ message: "Cuenta no encontrada" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   // Exercises (shared repository - all teachers see all exercises)
   app.get("/api/exercises", requireAuth, async (req: any, res) => {
     const user = await storage.getUser(req.session.userId);
@@ -1452,6 +1470,126 @@ export async function registerRoutes(
         exercises: allExercises.filter(ex => !courseExams.some(exam => exam.exerciseId === ex.id)).map(ex => ({ id: ex.id, title: ex.title })),
         exams: courseExams.map(ex => ({ id: ex.id, title: ex.title })),
         students: gradesData,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ========== Analytics ==========
+  app.get("/api/analytics/course/:courseId", requireRole("teacher", "admin"), async (req: any, res) => {
+    try {
+      const course = await storage.getCourseById(req.params.courseId);
+      if (!course) return res.status(404).json({ message: "Curso no encontrado" });
+      if (req.user.role === "teacher" && course.teacherId !== req.user.id) {
+        return res.status(403).json({ message: "Sin permisos" });
+      }
+
+      const students = await storage.getUsersByCourse(req.params.courseId);
+      const courseExerciseRows = await db.select().from(courseExercises).where(eq(courseExercises.courseId, req.params.courseId));
+      const courseExams = await storage.getExamsByCourse(req.params.courseId);
+      const examExerciseIds = new Set(courseExams.map(e => e.exerciseId));
+      const allExercises: Exercise[] = [];
+      for (const eid of courseExerciseRows.map(ce => ce.exerciseId)) {
+        const ex = await storage.getExercise(eid);
+        if (ex && !examExerciseIds.has(ex.id)) allExercises.push(ex);
+      }
+
+      let totalSubmissions = 0;
+      let reviewedSubmissions = 0;
+      let pendingSubmissions = 0;
+      let totalExamAttempts = 0;
+      let reviewedExamAttempts = 0;
+      let pendingExamAttempts = 0;
+      const allGrades: number[] = [];
+      const perStudent: { id: string; name: string; username: string; grades: number[]; pending: number }[] = [];
+      const perExercise = new Map<string, { id: string; title: string; submitted: number; reviewed: number; grades: number[] }>();
+      const perExam = new Map<string, { id: string; title: string; attempts: number; reviewed: number; grades: number[] }>();
+
+      for (const ex of allExercises) perExercise.set(ex.id, { id: ex.id, title: ex.title, submitted: 0, reviewed: 0, grades: [] });
+      for (const exam of courseExams) perExam.set(exam.id, { id: exam.id, title: exam.title, attempts: 0, reviewed: 0, grades: [] });
+
+      for (const s of students) {
+        const grades: number[] = [];
+        let pending = 0;
+        for (const ex of allExercises) {
+          const sub = await storage.getExerciseSubmission(ex.id, s.id);
+          if (!sub) continue;
+          const bucket = perExercise.get(ex.id)!;
+          if (sub.status === "submitted" || sub.status === "reviewed") { totalSubmissions++; bucket.submitted++; }
+          if (sub.status === "submitted") { pendingSubmissions++; pending++; }
+          if (sub.status === "reviewed") { reviewedSubmissions++; bucket.reviewed++; }
+          if (sub.grade != null && sub.grade !== "") {
+            const g = Number(sub.grade);
+            grades.push(g); allGrades.push(g); bucket.grades.push(g);
+          }
+        }
+        for (const exam of courseExams) {
+          const at = await storage.getExamAttempt(exam.id, s.id);
+          if (!at) continue;
+          const bucket = perExam.get(exam.id)!;
+          const isCompleted = at.status === "submitted" || at.status === "expired";
+          const isReviewed = isCompleted && at.reviewedAt != null;
+          const isPending = isCompleted && at.reviewedAt == null;
+          if (isCompleted) { totalExamAttempts++; bucket.attempts++; }
+          if (isPending) { pendingExamAttempts++; pending++; }
+          if (isReviewed) { reviewedExamAttempts++; bucket.reviewed++; }
+          if (at.grade != null && at.grade !== "") {
+            const g = Number(at.grade);
+            grades.push(g); allGrades.push(g); bucket.grades.push(g);
+          }
+        }
+        perStudent.push({ id: s.id, name: s.fullName, username: s.username, grades, pending });
+      }
+
+      const avg = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+      const studentsWithAvg = perStudent.map(s => ({
+        ...s,
+        average: avg(s.grades),
+        count: s.grades.length,
+      }));
+      const ranked = [...studentsWithAvg].filter(s => s.average !== null).sort((a, b) => (b.average! - a.average!));
+      const passing = studentsWithAvg.filter(s => s.average !== null && s.average! >= 5).length;
+      const failing = studentsWithAvg.filter(s => s.average !== null && s.average! < 5).length;
+
+      const totalSubmissionSlots = students.length * allExercises.length;
+      const totalExamSlots = students.length * courseExams.length;
+
+      res.json({
+        course: { id: course.id, name: course.name },
+        totals: {
+          students: students.length,
+          exercises: allExercises.length,
+          exams: courseExams.length,
+        },
+        submissions: {
+          total: totalSubmissions,
+          reviewed: reviewedSubmissions,
+          pending: pendingSubmissions,
+          completionRate: totalSubmissionSlots ? Math.round((totalSubmissions / totalSubmissionSlots) * 100) : 0,
+        },
+        examAttempts: {
+          total: totalExamAttempts,
+          reviewed: reviewedExamAttempts,
+          pending: pendingExamAttempts,
+          completionRate: totalExamSlots ? Math.round((totalExamAttempts / totalExamSlots) * 100) : 0,
+        },
+        grades: {
+          average: avg(allGrades),
+          passing,
+          failing,
+          notGraded: studentsWithAvg.filter(s => s.average === null).length,
+        },
+        topStudents: ranked.slice(0, 5),
+        bottomStudents: ranked.slice(-5).reverse(),
+        perExercise: Array.from(perExercise.values()).map(e => ({
+          id: e.id, title: e.title, submitted: e.submitted, reviewed: e.reviewed,
+          average: avg(e.grades), count: e.grades.length,
+        })),
+        perExam: Array.from(perExam.values()).map(e => ({
+          id: e.id, title: e.title, attempts: e.attempts, reviewed: e.reviewed,
+          average: avg(e.grades), count: e.grades.length,
+        })),
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

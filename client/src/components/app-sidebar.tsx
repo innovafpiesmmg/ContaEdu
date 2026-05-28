@@ -59,6 +59,7 @@ export function AppSidebar() {
     { title: "Repositorio", url: "/exercises", icon: Library },
     { title: "Exámenes", url: "/exams", icon: FileQuestion },
     { title: "Calificaciones", url: "/grades", icon: Award },
+    { title: "Analíticas", url: "/analytics", icon: BarChart3 },
     { title: "Mi Perfil", url: "/profile", icon: UserCog },
   ];
 
