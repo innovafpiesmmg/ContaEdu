@@ -94,7 +94,7 @@ function StudentRouter() {
 }
 
 function AuthenticatedApp() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const wasLoggedIn = useRef(false);
 
