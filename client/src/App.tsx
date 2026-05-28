@@ -8,6 +8,9 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { ExerciseProvider } from "@/lib/exercise-context";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
@@ -132,19 +135,57 @@ function AuthenticatedApp() {
     "--sidebar-width-icon": "3rem",
   };
 
+  const roleLabel = user.role === "admin" ? "Administrador" : user.role === "teacher" ? "Profesor" : "Alumno";
+  const initials = user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center gap-2 p-2 border-b shrink-0">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
+          <header className="flex items-center justify-between gap-2 px-4 h-14 bg-primary text-primary-foreground shrink-0 shadow-md">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger
+                data-testid="button-sidebar-toggle"
+                className="text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
+              />
+              <span className="text-sm font-semibold tracking-wide hidden sm:inline">
+                ContaEdu <span className="opacity-70 font-normal">— Panel de {roleLabel}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/10">
+                <Avatar className="w-7 h-7">
+                  <AvatarFallback className="text-[11px] bg-white text-primary font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs font-medium" data-testid="text-navbar-user-name">{user.fullName}</span>
+                  <span className="text-[10px] text-primary-foreground/80">{roleLabel}</span>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={logout}
+                data-testid="button-navbar-logout"
+                className="text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
+              >
+                <LogOut className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Salir</span>
+              </Button>
+            </div>
           </header>
           <main className="flex-1 overflow-auto">
             {user.role === "admin" && <AdminRouter />}
             {user.role === "teacher" && <TeacherRouter />}
             {user.role === "student" && <StudentRouter />}
           </main>
+          <footer className="bg-primary text-primary-foreground px-4 py-2 text-xs flex items-center justify-between shrink-0 border-t border-white/10">
+            <span className="opacity-80">© 2026 Atreyu Servicios Digitales</span>
+            <span className="opacity-80 hidden sm:inline">ContaEdu v2.0 — IES Manuel Martín González</span>
+          </footer>
         </div>
       </div>
     </SidebarProvider>

@@ -34,8 +34,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import contaeduMark from "@assets/ContaEdu_Favicon_1779964312406.png";
-import contaeduHorizontal from "@assets/contaedu_horizontal_1779964312407.png";
+import contaeduMark from "@assets/ContaEdu_Favicon_transparent.png";
+import contaeduHorizontal from "@assets/contaedu_horizontal_transparent.png";
 
 export function AppSidebar() {
   const { user, logout } = useAuth();
@@ -89,17 +89,17 @@ export function AppSidebar() {
           <img
             src={contaeduMark}
             alt="ContaEdu"
-            className="w-9 h-9 shrink-0 object-contain"
+            className="w-10 h-10 shrink-0 object-contain brightness-0 invert"
             data-testid="img-sidebar-logo-mark"
           />
           <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
             <img
               src={contaeduHorizontal}
               alt="ContaEdu"
-              className="h-5 w-auto object-contain object-left -ml-1"
+              className="h-7 w-auto object-contain object-left brightness-0 invert"
               data-testid="img-sidebar-logo-text"
             />
-            <span className="text-xs text-muted-foreground truncate mt-0.5">Simulador Contable</span>
+            <span className="text-[11px] text-sidebar-foreground/80 truncate mt-0.5">Simulador Contable</span>
           </div>
         </div>
       </SidebarHeader>
@@ -128,25 +128,17 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50">
+      <SidebarFooter className="p-3 group-data-[collapsible=icon]:hidden">
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/60">
           <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+            <AvatarFallback className="text-xs bg-white text-sidebar">
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-sm font-medium truncate" data-testid="text-user-name">{user.fullName}</span>
-            <Badge variant={roleColor} className="w-fit text-[10px]">{roleLabel}</Badge>
+            <span className="text-sm font-medium truncate text-sidebar-foreground" data-testid="text-sidebar-user-name">{user.fullName}</span>
+            <span className="text-[10px] text-sidebar-foreground/80">{roleLabel}</span>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={logout}
-            data-testid="button-logout"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
         </div>
       </SidebarFooter>
     </Sidebar>
