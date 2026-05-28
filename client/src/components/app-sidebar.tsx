@@ -128,19 +128,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 group-data-[collapsible=icon]:hidden">
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/60">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs bg-white text-sidebar">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-sm font-medium truncate text-sidebar-foreground" data-testid="text-sidebar-user-name">{user.fullName}</span>
-            <span className="text-[10px] text-sidebar-foreground/80">{roleLabel}</span>
-          </div>
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }
