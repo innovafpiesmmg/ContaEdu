@@ -489,7 +489,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             <img src={iesLogo} alt="IES Manuel Martín González" className="h-10 w-auto shrink-0 object-contain" />
             <div>
               <span className="text-sm font-semibold">IES Manuel Martín González</span>
-              <p className="text-xs text-muted-foreground">Arucas, Gran Canaria</p>
+              <p className="text-xs text-muted-foreground">Guía de Isora, Tenerife</p>
             </div>
           </div>
 
