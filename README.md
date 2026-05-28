@@ -1,6 +1,16 @@
-# ContaEdu — Simulador Contable Educativo
+<p align="center">
+  <img src="attached_assets/contaedu_horizontal_1779964312407.png" alt="ContaEdu" height="120" />
+</p>
+
+<h1 align="center">ContaEdu — Simulador Contable Educativo</h1>
 
 Simulador contable educativo diseñado para la **Formación Profesional** en España (CFGM y CFGS). Permite a los alumnos practicar contabilidad real siguiendo el **Plan General de Contabilidad (PGC)**, con soporte para los regímenes fiscales IVA (Península/Baleares) e IGIC (Canarias).
+
+<p align="center">
+  <img src="attached_assets/logo-ies_1779964690629.png" alt="IES Manuel Martín González" height="80" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="attached_assets/ASD_1771934179834.png" alt="Atreyu Servicios Digitales" height="60" />
+</p>
 
 Un proyecto del **Dpto. de Administración de Empresas del IES Manuel Martín González** (Guía de Isora, Tenerife).  
 Software desarrollado por **Atreyu Servicios Digitales**.
