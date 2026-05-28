@@ -477,7 +477,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
       </section>
 
-      <footer className="relative z-10 py-10 mt-20 bg-primary text-primary-foreground">
+      <footer className="relative z-10 pt-10 pb-6 mt-20 bg-primary text-primary-foreground">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
           <div className="flex items-center gap-3 text-center sm:text-left">
             <img src={contaeduMark} alt="ContaEdu" className="w-10 h-10 shrink-0 object-contain brightness-0 invert" />
@@ -505,6 +505,11 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
               <p className="text-xs text-primary-foreground/80">Desarrollo del software</p>
             </div>
           </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8 pt-6 border-t border-white/15 text-center">
+          <p className="text-xs text-primary-foreground/80" data-testid="text-copyright">
+            © 2026 Atreyu Servicios Digitales — Todos los derechos reservados
+          </p>
         </div>
       </footer>
     </div>

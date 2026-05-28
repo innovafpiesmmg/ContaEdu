@@ -371,3 +371,7 @@ La aplicación se iniciará en `http://localhost:5000`.
 ## Licencia
 
 Proyecto educativo del IES Manuel Martín González.
+
+---
+
+<p align="center">© 2026 Atreyu Servicios Digitales — Todos los derechos reservados</p>
