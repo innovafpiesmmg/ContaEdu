@@ -317,6 +317,7 @@ function ExerciseCard({
   onDelete,
   onAssign,
   onUnassign,
+  onSetDueDate,
   onAddToCollection,
   onRemoveFromCollection,
   onUpdateLevel,
@@ -329,6 +330,7 @@ function ExerciseCard({
   onDelete: () => void;
   onAssign: (courseId: string) => void;
   onUnassign: (courseId: string) => void;
+  onSetDueDate: (courseId: string, dueDate: string | null) => void;
   onAddToCollection: (collectionId: string) => void;
   onRemoveFromCollection: (collectionId: string) => void;
   onUpdateLevel: (level: string) => void;
@@ -340,6 +342,11 @@ function ExerciseCard({
   const { data: assignedCourseIds } = useQuery<string[]>({
     queryKey: ["/api/exercises", ex.id, "courses"],
     queryFn: () => fetch(`/api/exercises/${ex.id}/courses`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const { data: assignedCoursesData } = useQuery<{ courseId: string; dueDate: string | null }[]>({
+    queryKey: ["/api/exercises", ex.id, "course-assignments"],
+    queryFn: () => fetch(`/api/exercises/${ex.id}/course-assignments`, { credentials: "include" }).then(r => r.json()),
   });
 
   const { data: documents } = useQuery<ExerciseDocument[]>({
@@ -485,23 +492,34 @@ function ExerciseCard({
                   <Link2 className="w-4 h-4 text-primary" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-3" align="end">
-                <p className="text-sm font-medium mb-2">Asignar a cursos</p>
+              <PopoverContent className="w-72 p-3" align="end">
+                <p className="text-sm font-medium mb-2">Asignar a cursos · fecha de entrega</p>
                 {courses.length > 0 ? (
                   <div className="space-y-2">
                     {courses.map(c => {
-                      const isAssigned = assignedCourseIds?.includes(c.id) || false;
+                      const assignment = assignedCoursesData?.find(a => a.courseId === c.id);
+                      const isAssigned = !!assignment;
                       return (
-                        <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer" data-testid={`checkbox-course-${c.id}-${ex.id}`}>
-                          <Checkbox
-                            checked={isAssigned}
-                            onCheckedChange={(checked) => {
-                              if (checked) onAssign(c.id);
-                              else onUnassign(c.id);
-                            }}
+                        <div key={c.id} className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer flex-1 min-w-0" data-testid={`checkbox-course-${c.id}-${ex.id}`}>
+                            <Checkbox
+                              checked={isAssigned}
+                              onCheckedChange={(checked) => {
+                                if (checked) onAssign(c.id);
+                                else onUnassign(c.id);
+                              }}
+                            />
+                            <span className="truncate">{c.name}</span>
+                          </label>
+                          <Input
+                            type="date"
+                            disabled={!isAssigned}
+                            value={assignment?.dueDate || ""}
+                            onChange={e => onSetDueDate(c.id, e.target.value || null)}
+                            className="h-7 text-xs w-36 px-2"
+                            data-testid={`input-due-date-${c.id}-${ex.id}`}
                           />
-                          {c.name}
-                        </label>
+                        </div>
                       );
                     })}
                   </div>
@@ -850,6 +868,7 @@ export default function ExercisesPage() {
       apiRequest("POST", `/api/exercises/${exerciseId}/assign`, { courseId }),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "course-assignments"] });
       toast({ title: "Ejercicio asignado al curso" });
     },
   });
@@ -859,7 +878,17 @@ export default function ExercisesPage() {
       apiRequest("POST", `/api/exercises/${exerciseId}/unassign`, { courseId }),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "course-assignments"] });
       toast({ title: "Ejercicio desvinculado del curso" });
+    },
+  });
+
+  const setDueDateMutation = useMutation({
+    mutationFn: ({ exerciseId, courseId, dueDate }: { exerciseId: string; courseId: string; dueDate: string | null }) =>
+      apiRequest("PATCH", `/api/exercises/${exerciseId}/due-date`, { courseId, dueDate }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", vars.exerciseId, "course-assignments"] });
+      toast({ title: vars.dueDate ? "Fecha de entrega actualizada" : "Fecha de entrega eliminada" });
     },
   });
 
@@ -1145,6 +1174,7 @@ export default function ExercisesPage() {
                 onDelete={() => deleteMutation.mutate(ex.id)}
                 onAssign={(courseId) => assignMutation.mutate({ exerciseId: ex.id, courseId })}
                 onUnassign={(courseId) => unassignMutation.mutate({ exerciseId: ex.id, courseId })}
+                onSetDueDate={(courseId, dueDate) => setDueDateMutation.mutate({ exerciseId: ex.id, courseId, dueDate })}
                 onAddToCollection={(collectionId) => addToCollectionMutation.mutate({ collectionId, exerciseId: ex.id })}
                 onRemoveFromCollection={(collectionId) => removeFromCollectionMutation.mutate({ collectionId, exerciseId: ex.id })}
                 onUpdateLevel={(level) => updateExerciseMutation.mutate({ id: ex.id, recommendedLevel: level })}

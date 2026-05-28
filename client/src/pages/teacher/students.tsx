@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Trash2, Eye, Filter, Pencil } from "lucide-react";
+import { Plus, Users, Trash2, Eye, Filter, Pencil, Download, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,7 +22,32 @@ export default function StudentsPage() {
   const [filterCourseId, setFilterCourseId] = useState<string>("all");
   const [editStudent, setEditStudent] = useState<User | null>(null);
   const [editForm, setEditForm] = useState({ fullName: "", username: "", courseId: "" });
+  const [importOpen, setImportOpen] = useState(false);
+  const [importCourseId, setImportCourseId] = useState("");
+  const [importCsv, setImportCsv] = useState("");
+  const [importResult, setImportResult] = useState<{ created: number; total: number; results: any[] } | null>(null);
   const { toast } = useToast();
+
+  const importMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/users/students/import", { csv: importCsv, courseId: importCourseId });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/students"] });
+      setImportResult(data);
+      toast({ title: `Importados ${data.created} de ${data.total}` });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setImportCsv(String(reader.result || ""));
+    reader.readAsText(file, "utf-8");
+  };
 
   const { data: students, isLoading } = useQuery<User[]>({ queryKey: ["/api/users/students"] });
   const { data: courses } = useQuery<Course[]>({ queryKey: ["/api/courses"] });
@@ -83,6 +108,26 @@ export default function StudentsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Alumnos</h1>
           <p className="text-muted-foreground text-sm mt-1">Gestiona a tus estudiantes</p>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          data-testid="button-export-students-csv"
+          onClick={() => {
+            const qs = filterCourseId !== "all" ? `?courseId=${filterCourseId}` : "";
+            window.location.href = `/api/users/students/export.csv${qs}`;
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar CSV
+        </Button>
+        <Button
+          variant="outline"
+          data-testid="button-import-students"
+          onClick={() => { setImportOpen(true); setImportResult(null); setImportCsv(""); setImportCourseId(filterCourseId !== "all" ? filterCourseId : ""); }}
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          Importar CSV
+        </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-student">
@@ -147,7 +192,66 @@ export default function StudentsPage() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
+      <Dialog open={importOpen} onOpenChange={o => { setImportOpen(o); if (!o) setImportResult(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar alumnos desde CSV</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Formato CSV (separador <code>;</code>):</p>
+              <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">Nombre completo;Usuario;Contraseña;Email{"\n"}Juan Pérez;jperez2;alumno123;jp@correo.com</pre>
+              <p>Email es opcional. Excel y LibreOffice exportan en este formato.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Curso destino</Label>
+              <Select value={importCourseId} onValueChange={setImportCourseId}>
+                <SelectTrigger data-testid="select-import-course">
+                  <SelectValue placeholder="Seleccionar curso..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses?.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Archivo CSV</Label>
+              <Input type="file" accept=".csv,text/csv" onChange={handleFileChange} data-testid="input-import-file" />
+            </div>
+            {importCsv && (
+              <div className="space-y-2">
+                <Label>Vista previa</Label>
+                <pre className="bg-muted p-2 rounded text-xs max-h-32 overflow-auto">{importCsv.slice(0, 500)}{importCsv.length > 500 ? "..." : ""}</pre>
+              </div>
+            )}
+            {importResult && (
+              <div className="space-y-2 text-sm">
+                <p className="font-medium">Resultado: {importResult.created} creados de {importResult.total}</p>
+                {importResult.results.some((r: any) => !r.ok) && (
+                  <div className="max-h-32 overflow-auto text-xs space-y-1">
+                    {importResult.results.filter((r: any) => !r.ok).map((r: any, i: number) => (
+                      <div key={i} className="text-destructive">Fila {r.row} ({r.username || "?"}): {r.error}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <Button
+              data-testid="button-confirm-import"
+              className="w-full"
+              onClick={() => importMutation.mutate()}
+              disabled={!importCsv || !importCourseId || importMutation.isPending}
+            >
+              {importMutation.isPending ? "Importando..." : "Importar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {courses && courses.length > 1 && (
         <div className="flex items-center gap-2">

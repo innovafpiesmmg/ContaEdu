@@ -76,9 +76,11 @@ export interface IStorage {
   deleteExerciseDocument(id: string): Promise<void>;
 
   getCourseExercises(courseId: string): Promise<CourseExercise[]>;
-  assignExerciseToCourse(courseId: string, exerciseId: string): Promise<CourseExercise>;
+  assignExerciseToCourse(courseId: string, exerciseId: string, dueDate?: string | null): Promise<CourseExercise>;
+  updateCourseExerciseDueDate(courseId: string, exerciseId: string, dueDate: string | null): Promise<void>;
   unassignExerciseFromCourse(courseId: string, exerciseId: string): Promise<void>;
   getAssignedCourseIds(exerciseId: string): Promise<string[]>;
+  getAssignedCoursesWithDueDate(exerciseId: string): Promise<{ courseId: string; dueDate: string | null }[]>;
   isExerciseAssignedToCourse(exerciseId: string, courseId: string): Promise<boolean>;
 
   getJournalEntries(userId: string, exerciseId?: string): Promise<(JournalEntry & { lines: JournalLine[] })[]>;
@@ -286,12 +288,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(exercises).where(eq(exercises.courseId, courseId));
   }
 
-  async getExercisesForCourse(courseId: string): Promise<Exercise[]> {
+  async getExercisesForCourse(courseId: string): Promise<(Exercise & { dueDate?: string | null })[]> {
     const assignments = await db.select().from(courseExercises).where(eq(courseExercises.courseId, courseId));
     if (assignments.length === 0) return [];
-    const exerciseIds = assignments.map(a => a.exerciseId);
+    const dueMap = new Map(assignments.map(a => [a.exerciseId, a.dueDate]));
     const allExercises = await db.select().from(exercises);
-    return allExercises.filter(e => exerciseIds.includes(e.id));
+    return allExercises
+      .filter(e => dueMap.has(e.id))
+      .map(e => ({ ...e, dueDate: dueMap.get(e.id) ?? null }));
   }
 
   async createExercise(exercise: InsertExercise): Promise<Exercise> {
@@ -327,12 +331,27 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(courseExercises).where(eq(courseExercises.courseId, courseId));
   }
 
-  async assignExerciseToCourse(courseId: string, exerciseId: string): Promise<CourseExercise> {
+  async assignExerciseToCourse(courseId: string, exerciseId: string, dueDate?: string | null): Promise<CourseExercise> {
     const existing = await db.select().from(courseExercises)
       .where(and(eq(courseExercises.courseId, courseId), eq(courseExercises.exerciseId, exerciseId)));
-    if (existing.length > 0) return existing[0];
-    const [created] = await db.insert(courseExercises).values({ courseId, exerciseId }).returning();
+    if (existing.length > 0) {
+      if (dueDate !== undefined) {
+        const [updated] = await db.update(courseExercises)
+          .set({ dueDate: dueDate || null })
+          .where(eq(courseExercises.id, existing[0].id))
+          .returning();
+        return updated;
+      }
+      return existing[0];
+    }
+    const [created] = await db.insert(courseExercises).values({ courseId, exerciseId, dueDate: dueDate || null }).returning();
     return created;
+  }
+
+  async updateCourseExerciseDueDate(courseId: string, exerciseId: string, dueDate: string | null): Promise<void> {
+    await db.update(courseExercises)
+      .set({ dueDate })
+      .where(and(eq(courseExercises.courseId, courseId), eq(courseExercises.exerciseId, exerciseId)));
   }
 
   async unassignExerciseFromCourse(courseId: string, exerciseId: string): Promise<void> {
@@ -343,6 +362,11 @@ export class DatabaseStorage implements IStorage {
   async getAssignedCourseIds(exerciseId: string): Promise<string[]> {
     const rows = await db.select().from(courseExercises).where(eq(courseExercises.exerciseId, exerciseId));
     return rows.map(r => r.courseId);
+  }
+
+  async getAssignedCoursesWithDueDate(exerciseId: string): Promise<{ courseId: string; dueDate: string | null }[]> {
+    const rows = await db.select().from(courseExercises).where(eq(courseExercises.exerciseId, exerciseId));
+    return rows.map(r => ({ courseId: r.courseId, dueDate: r.dueDate ?? null }));
   }
 
   async isExerciseAssignedToCourse(exerciseId: string, courseId: string): Promise<boolean> {

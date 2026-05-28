@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileQuestion, Trash2, Clock, Users, Eye, ToggleLeft, ToggleRight, Upload, Download, FileText, BookOpen, X, Search, Star, MessageSquare } from "lucide-react";
+import { Plus, FileQuestion, Trash2, Clock, Users, Eye, ToggleLeft, ToggleRight, Upload, Download, FileText, BookOpen, X, Search, Star, MessageSquare, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Exam, Exercise, Course } from "@shared/schema";
@@ -633,7 +633,33 @@ export default function TeacherExamsPage() {
                                       className="text-sm"
                                     />
                                   </div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs"
+                                      data-testid="button-auto-grade-exam"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await fetch(`/api/exam-attempts/${a.id}/auto-grade`, { credentials: "include" });
+                                          if (!res.ok) {
+                                            const err = await res.json();
+                                            throw new Error(err.message || "Error");
+                                          }
+                                          const data = await res.json();
+                                          setReviewForm(prev => ({
+                                            grade: String(data.grade),
+                                            feedback: prev.feedback ? `${data.feedback}\n\n---\n${prev.feedback}` : data.feedback,
+                                          }));
+                                          toast({ title: `Nota propuesta: ${data.grade} (${data.matchedCount}/${data.totalSolutionEntries} asientos)` });
+                                        } catch (e: any) {
+                                          toast({ title: "Error", description: e.message, variant: "destructive" });
+                                        }
+                                      }}
+                                    >
+                                      <Sparkles className="w-3 h-3 mr-1" />
+                                      Calcular automática
+                                    </Button>
                                     <Button
                                       size="sm"
                                       className="h-7 text-xs"

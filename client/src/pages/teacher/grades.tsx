@@ -5,7 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Star, Search, TrendingUp, FileQuestion, ClipboardList } from "lucide-react";
+import { GraduationCap, Star, Search, TrendingUp, FileQuestion, ClipboardList, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { Course } from "@shared/schema";
 import { motion } from "framer-motion";
 
@@ -106,16 +107,27 @@ export default function GradesPage() {
           </SelectContent>
         </Select>
         {selectedCourse && (
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              data-testid="input-search-student-grades"
-              className="pl-8 h-9"
-              placeholder="Buscar alumno..."
-              value={searchStudent}
-              onChange={e => setSearchStudent(e.target.value)}
-            />
-          </div>
+          <>
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                data-testid="input-search-student-grades"
+                className="pl-8 h-9"
+                placeholder="Buscar alumno..."
+                value={searchStudent}
+                onChange={e => setSearchStudent(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-export-grades-csv"
+              onClick={() => { window.location.href = `/api/grades/${selectedCourse}/export.csv`; }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+          </>
         )}
       </div>
 

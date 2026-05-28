@@ -64,6 +64,9 @@ Educational accounting simulator for Spanish vocational training (CFGM/CFGS). Bu
 - `PATCH /api/exams/:id` - Toggle exam active
 - `POST /api/exam-attempts/:id/review` - Teacher grades an exam attempt (feedback + grade)
 - `GET /api/grades/:courseId` - Centralized grades view (exercises + exams per student)
+- `GET /api/grades/:courseId/export.csv` - Export gradebook as CSV (semicolon-separated, UTF-8 BOM)
+- `GET /api/users/students/export.csv?courseId=` - Export students as CSV
+- `POST /api/users/students/import` - Bulk import students from CSV (body: `{ csv, courseId }`)
 - `POST /api/exams/:examId/start` - Student starts exam
 - `POST /api/exams/:examId/submit` - Student submits exam
 - `GET /api/submissions` - Student's submissions list

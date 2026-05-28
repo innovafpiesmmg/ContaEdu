@@ -77,6 +77,7 @@ export const courseExercises = pgTable("course_exercises", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   courseId: varchar("course_id").notNull(),
   exerciseId: varchar("exercise_id").notNull(),
+  dueDate: text("due_date"),
 });
 
 export const exerciseCollections = pgTable("exercise_collections", {

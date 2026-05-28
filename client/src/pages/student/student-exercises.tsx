@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, BookOpen, PenLine, CheckCircle2, Send, Star, MessageSquare, Eye, ChevronDown, ChevronUp, Paperclip, FileText, File } from "lucide-react";
+import { ClipboardList, BookOpen, PenLine, CheckCircle2, Send, Star, MessageSquare, Eye, ChevronDown, ChevronUp, Paperclip, FileText, File, Calendar, AlertTriangle, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -115,8 +115,24 @@ function ExerciseDocumentsViewer({ exerciseId }: { exerciseId: string }) {
   );
 }
 
+type StudentExercise = Exercise & { dueDate?: string | null };
+
+function dueDateInfo(dueDate: string | null | undefined) {
+  if (!dueDate) return null;
+  const due = new Date(dueDate + "T23:59:59");
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const formatted = due.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+  if (diffMs < 0) return { label: `Vencido (${formatted})`, color: "bg-red-600", icon: AlertTriangle, urgency: "overdue" as const, sortKey: diffDays };
+  if (diffDays <= 1) return { label: `Hoy/Mañana (${formatted})`, color: "bg-red-500", icon: AlertTriangle, urgency: "urgent" as const, sortKey: diffDays };
+  if (diffDays <= 3) return { label: `${diffDays}d (${formatted})`, color: "bg-amber-500", icon: Clock, urgency: "soon" as const, sortKey: diffDays };
+  if (diffDays <= 7) return { label: `${diffDays}d (${formatted})`, color: "bg-blue-500", icon: Calendar, urgency: "week" as const, sortKey: diffDays };
+  return { label: formatted, color: "bg-slate-500", icon: Calendar, urgency: "later" as const, sortKey: diffDays };
+}
+
 export default function StudentExercisesPage() {
-  const { data: exercises, isLoading } = useQuery<Exercise[]>({ queryKey: ["/api/exercises"] });
+  const { data: exercises, isLoading } = useQuery<StudentExercise[]>({ queryKey: ["/api/exercises"] });
   const { data: submissions } = useQuery<ExerciseSubmission[]>({ queryKey: ["/api/submissions"] });
   const { currentExerciseId, setCurrentExerciseId } = useExercise();
   const { toast } = useToast();
@@ -154,6 +170,17 @@ export default function StudentExercisesPage() {
 
   const getSubmission = (exerciseId: string) => submissions?.find(s => s.exerciseId === exerciseId);
 
+  const sortedExercises = exercises ? [...exercises].sort((a, b) => {
+    const subA = getSubmission(a.id);
+    const subB = getSubmission(b.id);
+    const doneA = subA?.status === "submitted" || subA?.status === "reviewed";
+    const doneB = subB?.status === "submitted" || subB?.status === "reviewed";
+    if (doneA !== doneB) return doneA ? 1 : -1;
+    const dueA = dueDateInfo(a.dueDate)?.sortKey ?? Infinity;
+    const dueB = dueDateInfo(b.dueDate)?.sortKey ?? Infinity;
+    return dueA - dueB;
+  }) : [];
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
@@ -171,11 +198,13 @@ export default function StudentExercisesPage() {
           animate={{ opacity: 1 }}
           className="space-y-3"
         >
-          {exercises.map(ex => {
+          {sortedExercises.map(ex => {
             const isActive = currentExerciseId === ex.id;
             const sub = getSubmission(ex.id);
             const isSubmitted = sub?.status === "submitted";
             const isReviewed = sub?.status === "reviewed";
+            const due = dueDateInfo(ex.dueDate);
+            const showDue = due && !isSubmitted && !isReviewed;
 
             return (
               <Card
@@ -214,6 +243,12 @@ export default function StudentExercisesPage() {
                           <Badge variant="default" className="bg-green-600" data-testid={`badge-reviewed-${ex.id}`}>
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             Corregido
+                          </Badge>
+                        )}
+                        {showDue && due && (
+                          <Badge variant="default" className={`${due.color} text-white`} data-testid={`badge-due-${ex.id}`}>
+                            <due.icon className="w-3 h-3 mr-1" />
+                            {due.label}
                           </Badge>
                         )}
                       </div>

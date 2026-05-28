@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { examAttempts, courseExercises, type Exercise } from "@shared/schema";
+import { examAttempts, courseExercises, exerciseSubmissions, type Exercise } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -12,6 +12,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { sendPasswordResetEmail } from "./mail";
+import { autoGrade } from "./auto-grader";
 import multer from "multer";
 
 const UPLOADS_DIR = path.join(process.cwd(), "uploads", "documents");
@@ -635,12 +636,49 @@ export async function registerRoutes(
     res.json(courseIds);
   });
 
+  const isValidDueDate = (s: any): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s).getTime());
+
+  const ensureCourseOwned = async (courseId: any, userId: string) => {
+    if (!courseId || typeof courseId !== "string") return null;
+    const course = await storage.getCourseById(courseId);
+    if (!course || course.teacherId !== userId) return null;
+    return course;
+  };
+
+  app.get("/api/exercises/:id/course-assignments", requireRole("teacher"), async (req: any, res) => {
+    const rows = await storage.getAssignedCoursesWithDueDate(req.params.id);
+    const teacherCourses = await storage.getCoursesByTeacher(req.user.id);
+    const owned = new Set(teacherCourses.map(c => c.id));
+    res.json(rows.filter(r => owned.has(r.courseId)));
+  });
+
   app.post("/api/exercises/:id/assign", requireRole("teacher"), async (req: any, res) => {
     try {
-      const { courseId } = req.body;
-      if (!courseId) return res.status(400).json({ message: "Falta el ID del curso" });
-      const result = await storage.assignExerciseToCourse(courseId, req.params.id);
+      const { courseId, dueDate } = req.body;
+      const course = await ensureCourseOwned(courseId, req.user.id);
+      if (!course) return res.status(403).json({ message: "Sin permisos sobre este curso" });
+      if (dueDate != null && dueDate !== "" && !isValidDueDate(dueDate)) {
+        return res.status(400).json({ message: "Fecha de entrega inválida (formato YYYY-MM-DD)" });
+      }
+      const result = await storage.assignExerciseToCourse(courseId, req.params.id, dueDate || undefined);
       res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/exercises/:id/due-date", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const { courseId, dueDate } = req.body;
+      const course = await ensureCourseOwned(courseId, req.user.id);
+      if (!course) return res.status(403).json({ message: "Sin permisos sobre este curso" });
+      if (dueDate != null && dueDate !== "" && !isValidDueDate(dueDate)) {
+        return res.status(400).json({ message: "Fecha de entrega inválida (formato YYYY-MM-DD)" });
+      }
+      const assigned = await storage.isExerciseAssignedToCourse(req.params.id, courseId);
+      if (!assigned) return res.status(404).json({ message: "El ejercicio no está asignado a este curso" });
+      await storage.updateCourseExerciseDueDate(courseId, req.params.id, dueDate || null);
+      res.json({ ok: true });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
@@ -649,7 +687,8 @@ export async function registerRoutes(
   app.post("/api/exercises/:id/unassign", requireRole("teacher"), async (req: any, res) => {
     try {
       const { courseId } = req.body;
-      if (!courseId) return res.status(400).json({ message: "Falta el ID del curso" });
+      const course = await ensureCourseOwned(courseId, req.user.id);
+      if (!course) return res.status(403).json({ message: "Sin permisos sobre este curso" });
       await storage.unassignExerciseFromCourse(courseId, req.params.id);
       res.json({ ok: true });
     } catch (err: any) {
@@ -1013,6 +1052,53 @@ export async function registerRoutes(
     }
   });
 
+  // Auto-grade an exercise submission
+  app.get("/api/submissions/:id/auto-grade", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const [submission] = await db.select().from(exerciseSubmissions).where(eq(exerciseSubmissions.id, req.params.id));
+      if (!submission) return res.status(404).json({ message: "Entrega no encontrada" });
+
+      // Ownership: teacher must own the student's course
+      const student = await storage.getUser(submission.studentId);
+      if (!student?.courseId) return res.status(403).json({ message: "Sin permisos" });
+      const studentCourse = await storage.getCourseById(student.courseId);
+      if (!studentCourse || studentCourse.teacherId !== req.user.id) {
+        return res.status(403).json({ message: "Sin permisos" });
+      }
+
+      const exercise = await storage.getExercise(submission.exerciseId);
+      if (!exercise || !exercise.solution) {
+        return res.status(400).json({ message: "Este ejercicio no tiene solución cargada" });
+      }
+      const solution = JSON.parse(exercise.solution);
+      const entries = await storage.getJournalEntries(submission.studentId, submission.exerciseId);
+      const result = autoGrade(solution, entries as any);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Auto-grade an exam attempt
+  app.get("/api/exam-attempts/:id/auto-grade", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const attempt = await storage.getExamAttemptById(req.params.id);
+      if (!attempt) return res.status(404).json({ message: "Intento no encontrado" });
+      const exam = await storage.getExam(attempt.examId);
+      if (!exam || exam.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+      const exercise = await storage.getExercise(exam.exerciseId);
+      if (!exercise || !exercise.solution) {
+        return res.status(400).json({ message: "Este examen no tiene solución cargada" });
+      }
+      const solution = JSON.parse(exercise.solution);
+      const entries = await storage.getJournalEntries(attempt.studentId, exam.exerciseId);
+      const result = autoGrade(solution, entries as any);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
   // Collections
   app.get("/api/collections", requireRole("teacher"), async (req: any, res) => {
     const collections = await storage.getCollections();
@@ -1367,6 +1453,174 @@ export async function registerRoutes(
         exams: courseExams.map(ex => ({ id: ex.id, title: ex.title })),
         students: gradesData,
       });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ========== CSV Import / Export ==========
+  const csvEscape = (v: any) => {
+    let s = v == null ? "" : String(v);
+    // Mitigate CSV formula injection in Excel/LibreOffice
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const toCsv = (headers: string[], rows: any[][]) => {
+    const lines = [headers.map(csvEscape).join(";")];
+    for (const r of rows) lines.push(r.map(csvEscape).join(";"));
+    return "\uFEFF" + lines.join("\r\n"); // BOM for Excel UTF-8
+  };
+  const parseCsv = (text: string): string[][] => {
+    const t = text.replace(/^\uFEFF/, "");
+    const rows: string[][] = [];
+    let row: string[] = [], field = "", inQuotes = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (inQuotes) {
+        if (c === '"' && t[i + 1] === '"') { field += '"'; i++; }
+        else if (c === '"') inQuotes = false;
+        else field += c;
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ";" || c === ",") { row.push(field); field = ""; }
+        else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+        else if (c === "\r") {}
+        else field += c;
+      }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(c => c.trim() !== ""));
+  };
+
+  // Export students of a course (or all for the teacher) as CSV
+  app.get("/api/users/students/export.csv", requireRole("teacher", "admin"), async (req: any, res) => {
+    try {
+      const courseIdFilter = req.query.courseId as string | undefined;
+      const teacherCourses = req.user.role === "admin"
+        ? await storage.getCourses()
+        : await storage.getCoursesByTeacher(req.user.id);
+      const courseMap = new Map(teacherCourses.map(c => [c.id, c.name]));
+
+      let students: any[];
+      if (courseIdFilter) {
+        if (!courseMap.has(courseIdFilter)) return res.status(403).json({ message: "Sin permisos" });
+        students = await storage.getUsersByCourse(courseIdFilter);
+      } else if (req.user.role === "admin") {
+        students = await storage.getUsersByRole("student");
+      } else {
+        // Teacher: aggregate students from all currently-owned courses (not createdBy)
+        students = [];
+        const seen = new Set<string>();
+        for (const c of teacherCourses) {
+          for (const s of await storage.getUsersByCourse(c.id)) {
+            if (!seen.has(s.id)) { seen.add(s.id); students.push(s); }
+          }
+        }
+      }
+
+      const rows = students.map(s => [
+        s.fullName, s.username, s.email || "", courseMap.get(s.courseId || "") || "",
+      ]);
+      const csv = toCsv(["Nombre completo", "Usuario", "Email", "Curso"], rows);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="alumnos.csv"`);
+      res.send(csv);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Import students from CSV: columns: Nombre completo;Usuario;Contraseña;Email (opcional)
+  app.post("/api/users/students/import", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const { csv, courseId } = req.body;
+      if (!csv || typeof csv !== "string") return res.status(400).json({ message: "Falta el contenido CSV" });
+      const course = await storage.getCourseById(courseId);
+      if (!course || course.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos sobre este curso" });
+
+      const rows = parseCsv(csv);
+      if (rows.length < 2) return res.status(400).json({ message: "El CSV está vacío o no tiene cabecera" });
+      const header = rows[0].map(h => h.trim().toLowerCase());
+      const idxName = header.findIndex(h => h.startsWith("nombre"));
+      const idxUser = header.findIndex(h => h === "usuario" || h === "username");
+      const idxPass = header.findIndex(h => h.startsWith("contras") || h === "password");
+      const idxEmail = header.findIndex(h => h === "email" || h === "correo");
+      if (idxName < 0 || idxUser < 0 || idxPass < 0) {
+        return res.status(400).json({ message: "Cabeceras requeridas: 'Nombre completo;Usuario;Contraseña' (Email opcional)" });
+      }
+
+      const results: any[] = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const fullName = (r[idxName] || "").trim();
+        const username = (r[idxUser] || "").trim();
+        const password = (r[idxPass] || "").trim();
+        const email = idxEmail >= 0 ? (r[idxEmail] || "").trim() || null : null;
+        if (!fullName || !username || !password) {
+          results.push({ row: i + 1, ok: false, error: "Faltan campos obligatorios" });
+          continue;
+        }
+        try {
+          const existing = await storage.getUserByUsername(username);
+          if (existing) {
+            results.push({ row: i + 1, username, ok: false, error: "Usuario ya existe" });
+            continue;
+          }
+          const hashed = await bcrypt.hash(password, 10);
+          await storage.createUser({
+            fullName, username, password: hashed, role: "student", courseId, email, createdBy: req.user.id,
+          });
+          results.push({ row: i + 1, username, ok: true });
+        } catch (err: any) {
+          results.push({ row: i + 1, username, ok: false, error: err.message });
+        }
+      }
+      const created = results.filter(r => r.ok).length;
+      res.json({ created, total: results.length, results });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Export gradebook of a course as CSV
+  app.get("/api/grades/:courseId/export.csv", requireRole("teacher"), async (req: any, res) => {
+    try {
+      const course = await storage.getCourseById(req.params.courseId);
+      if (!course || course.teacherId !== req.user.id) return res.status(403).json({ message: "Sin permisos" });
+
+      const students = await storage.getUsersByCourse(req.params.courseId);
+      const courseExerciseRows = await db.select().from(courseExercises).where(eq(courseExercises.courseId, req.params.courseId));
+      const courseExams = await storage.getExamsByCourse(req.params.courseId);
+      const examExerciseIds = new Set(courseExams.map(e => e.exerciseId));
+      const allExercises: Exercise[] = [];
+      for (const eid of courseExerciseRows.map(ce => ce.exerciseId)) {
+        const ex = await storage.getExercise(eid);
+        if (ex && !examExerciseIds.has(ex.id)) allExercises.push(ex);
+      }
+
+      const headers = ["Nombre completo", "Usuario", ...allExercises.map(e => `Ej: ${e.title}`), ...courseExams.map(e => `Examen: ${e.title}`), "Media"];
+      const rows: any[][] = [];
+      for (const s of students) {
+        const row: any[] = [s.fullName, s.username];
+        const grades: number[] = [];
+        for (const ex of allExercises) {
+          const sub = await storage.getExerciseSubmission(ex.id, s.id);
+          row.push(sub?.grade ?? "");
+          if (sub?.grade != null && sub.grade !== "") grades.push(Number(sub.grade));
+        }
+        for (const exam of courseExams) {
+          const at = await storage.getExamAttempt(exam.id, s.id);
+          row.push(at?.grade ?? "");
+          if (at?.grade != null && at.grade !== "") grades.push(Number(at.grade));
+        }
+        const avg = grades.length ? (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(2) : "";
+        row.push(avg);
+        rows.push(row);
+      }
+      const csv = toCsv(headers, rows);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="notas-${course.name.replace(/[^a-z0-9]+/gi, "_")}.csv"`);
+      res.send(csv);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

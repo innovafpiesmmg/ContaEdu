@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList, BookOpen, PenLine, Eye, Send, Star, MessageSquare, Unlink2, GraduationCap, FileSpreadsheet, CheckCircle, Search } from "lucide-react";
+import { ClipboardList, BookOpen, PenLine, Eye, Send, Star, MessageSquare, Unlink2, GraduationCap, FileSpreadsheet, CheckCircle, Search, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -361,6 +361,7 @@ function ReviewContent({
   onSubmit: () => void;
   isPending: boolean;
 }) {
+  const [autoGrading, setAutoGrading] = useState(false);
   const { data: studentEntries } = useQuery<JournalEntryWithLines[]>({
     queryKey: ["/api/audit/students", submission?.studentId, "journal", submission?.exerciseId],
     queryFn: () => fetch(`/api/audit/students/${submission!.studentId}/journal?exerciseId=${submission!.exerciseId}`, { credentials: "include" }).then(r => r.json()),
@@ -493,18 +494,47 @@ function ReviewContent({
             value={feedbackText}
             onChange={e => setFeedbackText(e.target.value)}
             placeholder="Escribe aquí tu retroalimentación para el alumno..."
-            rows={3}
+            rows={6}
           />
         </div>
       </div>
-      <Button
-        data-testid="button-send-review"
-        className="w-full"
-        onClick={onSubmit}
-        disabled={!feedbackText || isPending}
-      >
-        {isPending ? "Enviando..." : "Enviar corrección"}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          data-testid="button-auto-grade"
+          disabled={!submission || solution.length === 0 || autoGrading}
+          onClick={async () => {
+            if (!submission) return;
+            setAutoGrading(true);
+            try {
+              const res = await fetch(`/api/submissions/${submission.id}/auto-grade`, { credentials: "include" });
+              if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || "Error al calcular");
+              }
+              const data = await res.json();
+              setGradeText(String(data.grade));
+              setFeedbackText(feedbackText ? `${data.feedback}\n\n---\n${feedbackText}` : data.feedback);
+            } catch (e: any) {
+              alert(e.message);
+            } finally {
+              setAutoGrading(false);
+            }
+          }}
+        >
+          <Sparkles className="w-4 h-4 mr-1.5" />
+          {autoGrading ? "Calculando..." : "Calcular nota automática"}
+        </Button>
+        <Button
+          data-testid="button-send-review"
+          className="flex-1"
+          onClick={onSubmit}
+          disabled={!feedbackText || isPending}
+        >
+          {isPending ? "Enviando..." : "Enviar corrección"}
+        </Button>
+      </div>
     </div>
   );
 }

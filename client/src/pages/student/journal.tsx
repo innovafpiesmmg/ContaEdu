@@ -539,7 +539,7 @@ export default function JournalPage() {
                   <FileText className="w-4 h-4 text-primary" />
                   <span className="font-medium text-sm">Enunciado</span>
                 </div>
-                <EnunciadoPanel exercise={currentExercise} exerciseId={currentExerciseId} />
+                <EnunciadoPanel exercise={currentExercise ?? undefined} exerciseId={currentExerciseId} />
               </CardContent>
             </Card>
           </div>
