@@ -34,6 +34,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import contaeduMark from "@assets/ContaEdu_Favicon_1779964312406.png";
+import contaeduHorizontal from "@assets/contaedu_horizontal_1779964312407.png";
 
 export function AppSidebar() {
   const { user, logout } = useAuth();
@@ -83,13 +85,21 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary">
-            <BookOpen className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-semibold truncate">ContaEdu</span>
-            <span className="text-xs text-muted-foreground truncate">Simulador Contable</span>
+        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
+          <img
+            src={contaeduMark}
+            alt="ContaEdu"
+            className="w-9 h-9 shrink-0 object-contain"
+            data-testid="img-sidebar-logo-mark"
+          />
+          <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
+            <img
+              src={contaeduHorizontal}
+              alt="ContaEdu"
+              className="h-5 w-auto object-contain object-left -ml-1"
+              data-testid="img-sidebar-logo-text"
+            />
+            <span className="text-xs text-muted-foreground truncate mt-0.5">Simulador Contable</span>
           </div>
         </div>
       </SidebarHeader>

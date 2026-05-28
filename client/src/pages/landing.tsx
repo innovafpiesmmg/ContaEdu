@@ -21,6 +21,8 @@ import teacherStudent from "@/assets/images/teacher-student.jpg";
 import studentAccounting from "@/assets/images/student-accounting.jpg";
 import studentsCollaboration from "@/assets/images/students-collaboration.jpg";
 import asdLogo from "@assets/ASD_1771934179834.png";
+import contaeduMark from "@assets/ContaEdu_Favicon_1779964312406.png";
+import contaeduHorizontal from "@assets/contaedu_horizontal_1779964312407.png";
 
 interface LandingPageProps {
   onGoToLogin: () => void;
@@ -124,11 +126,12 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
 
       <header className="relative z-10 border-b bg-background/80 backdrop-blur-sm sticky top-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight">ContaEdu</span>
+          <div className="flex items-center" data-testid="landing-brand">
+            <img
+              src={contaeduHorizontal}
+              alt="ContaEdu"
+              className="h-8 w-auto object-contain"
+            />
           </div>
           <Button onClick={onGoToLogin} data-testid="button-header-login">
             Acceder
@@ -354,9 +357,11 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       <footer className="relative z-10 border-t py-6 mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
           <div className="flex items-center gap-2 text-center sm:text-left">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <BookOpen className="w-3.5 h-3.5 text-primary-foreground" />
-            </div>
+            <img
+              src={contaeduMark}
+              alt="ContaEdu"
+              className="w-7 h-7 shrink-0 object-contain"
+            />
             <div>
               <span className="text-sm font-medium">ContaEdu</span>
               <p className="text-xs text-muted-foreground">Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González</p>

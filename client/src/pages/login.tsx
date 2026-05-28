@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Lock, User, ArrowRight, ArrowLeft, UserPlus, KeyRound, Mail } from "lucide-react";
+import { Lock, User, ArrowRight, ArrowLeft, UserPlus, KeyRound, Mail } from "lucide-react";
+import contaeduLogo from "@assets/ContaEdu_1779964312408.png";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -118,12 +119,12 @@ export default function LoginPage({ onBack }: LoginPageProps) {
         className="w-full max-w-md relative z-10"
       >
         <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
-              <BookOpen className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold">ContaEdu</h1>
-          </div>
+          <img
+            src={contaeduLogo}
+            alt="ContaEdu"
+            className="h-24 w-auto mx-auto mb-2 object-contain"
+            data-testid="img-login-logo"
+          />
           <p className="text-sm text-muted-foreground">Simulador Contable Educativo</p>
         </div>
 
