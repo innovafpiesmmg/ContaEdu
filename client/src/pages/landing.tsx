@@ -25,10 +25,10 @@ import heroClassroom from "@/assets/images/hero-classroom.jpg";
 import teacherStudent from "@/assets/images/teacher-student.jpg";
 import studentAccounting from "@/assets/images/student-accounting.jpg";
 import studentsCollaboration from "@/assets/images/students-collaboration.jpg";
-import asdLogo from "@assets/ASD_1771934179834.png";
-import contaeduMark from "@assets/ContaEdu_Favicon_1779964312406.png";
-import contaeduHorizontal from "@assets/contaedu_horizontal_1779964312407.png";
-import iesLogo from "@assets/logo-ies_1779964690629.png";
+import asdLogo from "@assets/ASD_transparent.png";
+import contaeduMark from "@assets/ContaEdu_Favicon_transparent.png";
+import contaeduHorizontal from "@assets/contaedu_horizontal_transparent.png";
+import iesLogo from "@assets/logo-ies_transparent.png";
 
 interface LandingPageProps {
   onGoToLogin: () => void;
@@ -98,13 +98,11 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       <header className="fixed top-0 left-0 right-0 z-30 border-b border-white/10 bg-primary shadow-lg shadow-primary/20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-24 sm:h-28 flex items-center justify-between">
           <div className="flex items-center" data-testid="landing-brand">
-            <div className="bg-white rounded-xl px-4 py-2 shadow-md">
-              <img
-                src={contaeduHorizontal}
-                alt="ContaEdu"
-                className="h-10 sm:h-12 w-auto object-contain"
-              />
-            </div>
+            <img
+              src={contaeduHorizontal}
+              alt="ContaEdu"
+              className="h-14 sm:h-16 w-auto object-contain brightness-0 invert"
+            />
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild className="hidden sm:inline-flex text-primary-foreground hover:bg-white/15 hover:text-primary-foreground">
@@ -482,7 +480,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       <footer className="relative z-10 py-10 mt-20 bg-primary text-primary-foreground">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
           <div className="flex items-center gap-3 text-center sm:text-left">
-            <img src={contaeduMark} alt="ContaEdu" className="w-10 h-10 shrink-0 object-contain bg-white rounded-lg p-1" />
+            <img src={contaeduMark} alt="ContaEdu" className="w-10 h-10 shrink-0 object-contain brightness-0 invert" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold">ContaEdu</span>
@@ -493,7 +491,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
           </div>
 
           <div className="flex items-center gap-2.5 text-center sm:text-left" data-testid="footer-ies">
-            <img src={iesLogo} alt="IES Manuel Martín González" className="h-10 w-auto shrink-0 object-contain bg-white rounded-lg p-1" />
+            <img src={iesLogo} alt="IES Manuel Martín González" className="h-12 w-auto shrink-0 object-contain" />
             <div>
               <span className="text-sm font-semibold">IES Manuel Martín González</span>
               <p className="text-xs text-primary-foreground/80">Guía de Isora, Tenerife</p>
@@ -501,7 +499,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 text-center sm:text-left">
-            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-10 w-auto shrink-0 object-contain bg-white rounded-lg p-1" data-testid="img-asd-logo" />
+            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-12 w-auto shrink-0 object-contain brightness-0 invert" data-testid="img-asd-logo" />
             <div>
               <span className="text-sm font-semibold">Atreyu Servicios Digitales</span>
               <p className="text-xs text-primary-foreground/80">Desarrollo del software</p>
