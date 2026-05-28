@@ -85,22 +85,22 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
+        <div className="flex flex-col items-start gap-1 group-data-[collapsible=icon]:items-center">
           <img
             src={contaeduMark}
             alt="ContaEdu"
-            className="w-10 h-10 shrink-0 object-contain brightness-0 invert"
+            className="w-10 h-10 shrink-0 object-contain brightness-0 invert hidden group-data-[collapsible=icon]:block"
             data-testid="img-sidebar-logo-mark"
           />
-          <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
-            <img
-              src={contaeduHorizontal}
-              alt="ContaEdu"
-              className="h-7 w-auto object-contain object-left brightness-0 invert"
-              data-testid="img-sidebar-logo-text"
-            />
-            <span className="text-[11px] text-sidebar-foreground/80 truncate mt-0.5">Simulador Contable</span>
-          </div>
+          <img
+            src={contaeduHorizontal}
+            alt="ContaEdu"
+            className="h-10 w-auto object-contain object-left brightness-0 invert group-data-[collapsible=icon]:hidden"
+            data-testid="img-sidebar-logo-text"
+          />
+          <span className="text-[11px] text-sidebar-foreground/80 truncate group-data-[collapsible=icon]:hidden">
+            Simulador Contable
+          </span>
         </div>
       </SidebarHeader>
 
