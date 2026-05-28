@@ -125,12 +125,12 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       </div>
 
       <header className="relative z-10 border-b bg-background/80 backdrop-blur-sm sticky top-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-24 sm:h-28 flex items-center justify-between">
           <div className="flex items-center" data-testid="landing-brand">
             <img
               src={contaeduHorizontal}
               alt="ContaEdu"
-              className="h-8 w-auto object-contain"
+              className="h-14 sm:h-16 w-auto object-contain"
             />
           </div>
           <Button onClick={onGoToLogin} data-testid="button-header-login">
