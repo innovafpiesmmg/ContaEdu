@@ -95,25 +95,32 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         />
       </div>
 
-      <header className="relative z-20 border-b bg-background/70 backdrop-blur-xl sticky top-0">
+      <header className="fixed top-0 left-0 right-0 z-30 border-b border-white/10 bg-primary shadow-lg shadow-primary/20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-24 sm:h-28 flex items-center justify-between">
           <div className="flex items-center" data-testid="landing-brand">
-            <img src={contaeduHorizontal} alt="ContaEdu" className="h-14 sm:h-16 w-auto object-contain" />
+            <div className="bg-white rounded-xl px-4 py-2 shadow-md">
+              <img
+                src={contaeduHorizontal}
+                alt="ContaEdu"
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+            <Button variant="ghost" asChild className="hidden sm:inline-flex text-primary-foreground hover:bg-white/15 hover:text-primary-foreground">
               <a href="#features" data-testid="link-nav-features">Funcionalidades</a>
             </Button>
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+            <Button variant="ghost" asChild className="hidden sm:inline-flex text-primary-foreground hover:bg-white/15 hover:text-primary-foreground">
               <a href="#roles" data-testid="link-nav-roles">Roles</a>
             </Button>
-            <Button onClick={onGoToLogin} data-testid="button-header-login" className="shadow-lg shadow-primary/25">
+            <Button onClick={onGoToLogin} variant="secondary" data-testid="button-header-login" className="shadow-xl">
               Acceder
               <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
       </header>
+      <div className="h-24 sm:h-28" aria-hidden="true" />
 
       {/* ============== HERO ============== */}
       <section className="relative z-10 pt-16 pb-24 sm:pt-24 sm:pb-32">
@@ -472,32 +479,32 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
       </section>
 
-      <footer className="relative z-10 border-t py-8 mt-20 bg-background/50 backdrop-blur-sm">
+      <footer className="relative z-10 py-10 mt-20 bg-primary text-primary-foreground">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
           <div className="flex items-center gap-3 text-center sm:text-left">
-            <img src={contaeduMark} alt="ContaEdu" className="w-9 h-9 shrink-0 object-contain" />
+            <img src={contaeduMark} alt="ContaEdu" className="w-10 h-10 shrink-0 object-contain bg-white rounded-lg p-1" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold">ContaEdu</span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary" data-testid="text-version">v2.0</span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/20 text-primary-foreground" data-testid="text-version">v2.0</span>
               </div>
-              <p className="text-xs text-muted-foreground">Un proyecto del Dpto. de Administración de Empresas</p>
+              <p className="text-xs text-primary-foreground/80">Un proyecto del Dpto. de Administración de Empresas</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 text-center sm:text-left" data-testid="footer-ies">
-            <img src={iesLogo} alt="IES Manuel Martín González" className="h-10 w-auto shrink-0 object-contain" />
+            <img src={iesLogo} alt="IES Manuel Martín González" className="h-10 w-auto shrink-0 object-contain bg-white rounded-lg p-1" />
             <div>
               <span className="text-sm font-semibold">IES Manuel Martín González</span>
-              <p className="text-xs text-muted-foreground">Guía de Isora, Tenerife</p>
+              <p className="text-xs text-primary-foreground/80">Guía de Isora, Tenerife</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 text-center sm:text-left">
-            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-10 w-auto shrink-0 object-contain" data-testid="img-asd-logo" />
+            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-10 w-auto shrink-0 object-contain bg-white rounded-lg p-1" data-testid="img-asd-logo" />
             <div>
               <span className="text-sm font-semibold">Atreyu Servicios Digitales</span>
-              <p className="text-xs text-muted-foreground">Desarrollo del software</p>
+              <p className="text-xs text-primary-foreground/80">Desarrollo del software</p>
             </div>
           </div>
         </div>
