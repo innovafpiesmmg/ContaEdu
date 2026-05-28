@@ -10,7 +10,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, HelpCircle } from "lucide-react";
+import { Link } from "wouter";
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
@@ -42,6 +43,7 @@ import StudentGradesPage from "@/pages/student/student-grades";
 import AnaliticaPage from "@/pages/student/analitica";
 import ProfilePage from "@/pages/profile";
 import ResetPasswordPage from "@/pages/reset-password";
+import HelpPage from "@/pages/help";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function AdminRouter() {
@@ -51,6 +53,7 @@ function AdminRouter() {
       <Route path="/school-years" component={SchoolYearsPage} />
       <Route path="/teachers" component={TeachersPage} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/help" component={HelpPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -69,6 +72,7 @@ function TeacherRouter() {
       <Route path="/grades" component={GradesPage} />
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/profile" component={ProfilePage} />
+      <Route path="/help" component={HelpPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -88,6 +92,7 @@ function StudentRouter() {
       <Route path="/manual" component={ManualPage} />
       <Route path="/analitica" component={AnaliticaPage} />
       <Route path="/profile" component={ProfilePage} />
+      <Route path="/help" component={HelpPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -165,6 +170,18 @@ function AuthenticatedApp() {
                   <span className="text-[10px] text-primary-foreground/80">{roleLabel}</span>
                 </div>
               </div>
+              <Link href="/help">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  data-testid="button-navbar-help"
+                  className="text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
+                  title="Ayuda"
+                >
+                  <HelpCircle className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Ayuda</span>
+                </Button>
+              </Link>
               <Button
                 size="sm"
                 variant="ghost"
