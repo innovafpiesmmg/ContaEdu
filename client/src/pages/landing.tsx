@@ -28,6 +28,7 @@ import studentsCollaboration from "@/assets/images/students-collaboration.jpg";
 import asdLogo from "@assets/ASD_1771934179834.png";
 import contaeduMark from "@assets/ContaEdu_Favicon_1779964312406.png";
 import contaeduHorizontal from "@assets/contaedu_horizontal_1779964312407.png";
+import iesLogo from "@assets/logo-ies_1779964690629.png";
 
 interface LandingPageProps {
   onGoToLogin: () => void;
@@ -472,17 +473,29 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       </section>
 
       <footer className="relative z-10 border-t py-8 mt-20 bg-background/50 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
-          <div className="flex items-center gap-2 text-center sm:text-left">
-            <img src={contaeduMark} alt="ContaEdu" className="w-8 h-8 shrink-0 object-contain" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <img src={contaeduMark} alt="ContaEdu" className="w-9 h-9 shrink-0 object-contain" />
             <div>
-              <span className="text-sm font-semibold">ContaEdu</span>
-              <p className="text-xs text-muted-foreground">Un proyecto del Dpto. de Administración de Empresas del IES Manuel Martín González</p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">ContaEdu</span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary" data-testid="text-version">v2.0</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Un proyecto del Dpto. de Administración de Empresas</p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2.5 text-center sm:text-left" data-testid="footer-ies">
+            <img src={iesLogo} alt="IES Manuel Martín González" className="h-10 w-auto shrink-0 object-contain" />
+            <div>
+              <span className="text-sm font-semibold">IES Manuel Martín González</span>
+              <p className="text-xs text-muted-foreground">Arucas, Gran Canaria</p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-1.5 shrink-0">
             <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-4 w-auto" data-testid="img-asd-logo" />
-            <span className="text-[11px] text-muted-foreground">Software desarrollado por Atreyu Servicios Digitales</span>
+            <span className="text-[11px] text-muted-foreground">Software desarrollado por<br />Atreyu Servicios Digitales</span>
           </div>
         </div>
       </footer>
