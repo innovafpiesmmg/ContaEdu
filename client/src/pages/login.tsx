@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, User, ArrowRight, ArrowLeft, UserPlus, KeyRound, Mail } from "lucide-react";
-import contaeduLogo from "@assets/ContaEdu_1779964312408.png";
+import contaeduLogo from "@assets/ContaEdu_stacked_transparent.png";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -103,13 +103,11 @@ export default function LoginPage({ onBack }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-primary p-4 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-primary/3 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-chart-2/5 rounded-full blur-3xl" />
-        </div>
+        <div className="absolute top-10 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
       </div>
 
       <motion.div
@@ -122,10 +120,10 @@ export default function LoginPage({ onBack }: LoginPageProps) {
           <img
             src={contaeduLogo}
             alt="ContaEdu"
-            className="h-24 w-auto mx-auto mb-2 object-contain"
+            className="h-28 w-auto mx-auto mb-2 object-contain brightness-0 invert"
             data-testid="img-login-logo"
           />
-          <p className="text-sm text-muted-foreground">Simulador Contable Educativo</p>
+          <p className="text-sm text-primary-foreground/80">Simulador Contable Educativo</p>
         </div>
 
         <Card className="border-border/50 shadow-lg">
@@ -350,7 +348,13 @@ export default function LoginPage({ onBack }: LoginPageProps) {
 
         {onBack && (
           <div className="mt-4 text-center">
-            <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              data-testid="button-back"
+              className="text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
+            >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Volver
             </Button>
