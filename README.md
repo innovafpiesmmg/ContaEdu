@@ -2,27 +2,59 @@
 
 Simulador contable educativo diseñado para la **Formación Profesional** en España (CFGM y CFGS). Permite a los alumnos practicar contabilidad real siguiendo el **Plan General de Contabilidad (PGC)**, con soporte para los regímenes fiscales IVA (Península/Baleares) e IGIC (Canarias).
 
-Un proyecto del **Dpto. de Administración de Empresas del IES Manuel Martín González**.  
+Un proyecto del **Dpto. de Administración de Empresas del IES Manuel Martín González** (Guía de Isora, Tenerife).  
 Software desarrollado por **Atreyu Servicios Digitales**.
+
+> Versión actual: **v2.0**
 
 ---
 
 ## Características
 
+### Contabilidad
 - **Libro Diario** — Registro de asientos contables con validación automática de partida doble
 - **Libro Mayor** — Visualización de movimientos por cuenta en formato T (Debe / Haber)
 - **Balance de Comprobación** — Generación automática del balance de sumas y saldos
-- **Plan General Contable** — Más de 60 cuentas del PGC organizadas por grupos con buscador
-- **Gestión de Aula** — Profesores crean cursos, alumnos y ejercicios; auditan el trabajo en tiempo real
+- **Plan General Contable** — Más de 60 cuentas del PGC organizadas por grupos, con guías de uso (descripción y normas de cargo/abono editables por el profesor)
 - **IVA / IGIC** — Soporte para ambos regímenes fiscales
+- **Contabilidad Analítica** y **Manual de contabilidad** integrados para el alumno
+
+### Aula y gestión
+- **Roles** Administrador / Profesor / Alumno con autenticación por sesión y bcrypt
+- **Cursos y años escolares** organizados por el administrador
+- **Matriculación con código** — los alumnos se registran solos con un código del profesor
+- **Importación/Exportación CSV** de alumnos y del cuaderno de notas
+- **Perfil de usuario** — cambio de contraseña y correo desde la propia interfaz
+- **Recuperación de contraseña por email** (SMTP configurable por el admin)
+
+### Ejercicios y exámenes
+- **Repositorio compartido de ejercicios** entre todos los profesores
+- **Asignación de ejercicios a cursos** mediante una tabla de relación (un ejercicio puede asignarse a varios cursos)
+- **Colecciones** para organizar ejercicios en grupos temáticos
+- **Clasificación por nivel** (CFGM / CFGS) y **plan de cuentas personalizado** (PDF) por ejercicio
+- **Buscador y filtros** por tipo, nivel, colección y estado en el repositorio
+- **Importación desde Markdown** de ejercicios y exámenes (con soluciones inline opcionales)
+- **Exámenes cronometrados** con corrección manual y feedback
+- **Corrección automática** de ejercicios y exámenes contra la solución del profesor
+- **Modo tarea** para entregas guiadas
+
+### Profesorado
+- **Cuaderno de notas centralizado** por curso (ejercicios + exámenes)
+- **Panel de analítica** por curso: totales, distribución de notas, top/bottom de alumnos, estadísticas por ejercicio/examen
+- **Auditoría en vivo** del trabajo del alumno (diario, mayor, balance)
+- **Revisión con feedback y nota** (0-10) sobre cada entrega
+
+### Página pública
+- **Landing page** llamativa con presentación del producto, funcionalidades y roles
+- Cabecera fija y pie corporativos en azul con identidad visual de ContaEdu
 
 ## Roles de usuario
 
 | Rol | Funciones |
 |---|---|
-| **Administrador** | Gestión de años escolares, creación de profesores, configuración fiscal |
-| **Profesor** | Creación de cursos y alumnos, diseño de ejercicios, auditoría del trabajo |
-| **Alumno** | Registro de asientos, consulta de Libro Mayor, Balance y PGC |
+| **Administrador** | Años escolares, configuración fiscal (IVA/IGIC), creación de profesores, servidor SMTP |
+| **Profesor** | Cursos, alumnos, ejercicios, exámenes, colecciones, corrección con feedback y analítica |
+| **Alumno** | Matriculación con código, registro de asientos, consulta de Mayor/Balance/PGC, entrega de ejercicios y exámenes |
 
 ## Tecnologías
 
