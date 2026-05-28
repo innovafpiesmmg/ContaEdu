@@ -491,7 +491,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
           </div>
 
           <div className="flex items-center gap-2.5 text-center sm:text-left" data-testid="footer-ies">
-            <img src={iesLogo} alt="IES Manuel Martín González" className="h-12 w-auto shrink-0 object-contain" />
+            <img src={iesLogo} alt="IES Manuel Martín González" className="h-12 w-auto shrink-0 object-contain brightness-0 invert" />
             <div>
               <span className="text-sm font-semibold">IES Manuel Martín González</span>
               <p className="text-xs text-primary-foreground/80">Guía de Isora, Tenerife</p>
