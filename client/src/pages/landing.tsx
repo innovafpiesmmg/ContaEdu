@@ -493,9 +493,12 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-4 w-auto" data-testid="img-asd-logo" />
-            <span className="text-[11px] text-muted-foreground">Software desarrollado por<br />Atreyu Servicios Digitales</span>
+          <div className="flex items-center gap-2.5 shrink-0 text-center sm:text-left">
+            <img src={asdLogo} alt="Atreyu Servicios Digitales" className="h-10 w-auto shrink-0 object-contain" data-testid="img-asd-logo" />
+            <div>
+              <span className="text-sm font-semibold">Atreyu Servicios Digitales</span>
+              <p className="text-xs text-muted-foreground">Desarrollo del software</p>
+            </div>
           </div>
         </div>
       </footer>
